@@ -1,14 +1,13 @@
 /**
- * GET /api/countries/[code] — the aggregated dashboard payload for one country.
+ * GET /api/countries/[code]?lang=en — the aggregated dashboard payload.
+ *
+ * `lang` query param (optional, default "en") controls the language of
+ * LLM-generated content. Valid values: en, es, it, fr.
  *
  * Runs the aggregator: parallel fetch over DB + weather + fx + advisory.
- * The first request for a country triggers a one-time LLM content generation
- * (~5-10s); subsequent requests are DB-fast.
- *
- * We set `Cache-Control: no-store` so the browser always asks for fresh
- * dynamic data — server-side TTLs (weather 20m, fx 6h, advisory 12h) handle
- * the actual freshness. Caching the whole blob at the HTTP layer would
- * freeze weather for the user.
+ * The first request for a country (or a language switch) triggers a one-time
+ * LLM content generation (~5-15s); subsequent requests in the same language
+ * are DB-fast.
  *
  * Response (200): AggregatedCountry
  * Response (400): invalid code
@@ -17,11 +16,14 @@
  */
 import { NextResponse } from 'next/server';
 import { aggregateCountry } from '@/lib/aggregate';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n';
 
 export const dynamic = 'force-dynamic';
 
+const VALID_LOCALES: Locale[] = ['en', 'es', 'it', 'fr'];
+
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
@@ -29,8 +31,14 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid country code' }, { status: 400 });
   }
 
+  // Read the requested language from the ?lang= query param.
+  const url = new URL(req.url);
+  const langParam = url.searchParams.get('lang')?.toLowerCase() as Locale | null;
+  const locale: Locale =
+    langParam && VALID_LOCALES.includes(langParam) ? langParam : DEFAULT_LOCALE;
+
   try {
-    const payload = await aggregateCountry(code);
+    const payload = await aggregateCountry(code, locale);
     if (!payload) {
       return NextResponse.json(
         { error: `Country '${code.toUpperCase()}' not found` },

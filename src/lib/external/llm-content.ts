@@ -63,17 +63,20 @@ export type LlmCountryPayload = {
   };
 };
 
-const SYSTEM_PROMPT = `You are a senior travel editor and encyclopedist. You produce concise, accurate, well-structured travel briefs in English for any country on Earth. You always reply with a SINGLE valid JSON object and NOTHING ELSE — no markdown fences, no commentary.`;
+const SYSTEM_PROMPT = `You are a senior travel editor and encyclopedist. You produce concise, accurate, well-structured travel briefs for any country on Earth. You always reply with a SINGLE valid JSON object and NOTHING ELSE — no markdown fences, no commentary.`;
 
-function buildUserPrompt(country: {
-  name: string;
-  officialName?: string | null;
-  capital?: string | null;
-  region?: string | null;
-  subregion?: string | null;
-  languagesJson?: string | null;
-  currenciesJson?: string | null;
-}): string {
+function buildUserPrompt(
+  country: {
+    name: string;
+    officialName?: string | null;
+    capital?: string | null;
+    region?: string | null;
+    subregion?: string | null;
+    languagesJson?: string | null;
+    currenciesJson?: string | null;
+  },
+  languageName: string,
+): string {
   const languages = safeParse<Record<string, string>>(country.languagesJson);
   const currencies = safeParse<Record<string, { name: string; symbol?: string }>>(country.currenciesJson);
   const langList = languages ? Object.values(languages).slice(0, 5).join(', ') : 'n/a';
@@ -86,7 +89,9 @@ function buildUserPrompt(country: {
 
   return `Produce a travel brief for the country "${country.name}" (official: ${country.officialName ?? country.name}, capital: ${country.capital ?? 'n/a'}, region: ${country.region ?? 'n/a'} / ${country.subregion ?? 'n/a'}, languages: ${langList}, currencies: ${curList}).
 
-Return STRICT JSON with EXACTLY this shape and field names, all strings in English:
+IMPORTANT: Write ALL human-readable text (tagline, bestTimeToVisit, overview, culture bullets, unwrittenRules bullets, safetyBrief, food names+descriptions, POI names+descriptions, price notes) in ${languageName}. Keep field names, category values, and currency ranges exactly as specified.
+
+Return STRICT JSON with EXACTLY this shape and field names:
 
 {
   "tagline": "a vivid one-liner, <= 90 chars",
@@ -113,9 +118,10 @@ Return STRICT JSON with EXACTLY this shape and field names, all strings in Engli
 }
 
 Rules:
-- Output ONLY the JSON. No backticks, no "Here is...". 
+- Output ONLY the JSON. No backticks, no "Here is...".
 - All ranges are inclusive, use a hyphen, no spaces around it, integers in EUR.
-- Be specific and accurate; do not invent places that don't exist.`;
+- Be specific and accurate; do not invent places that don't exist.
+- Keep proper nouns (place names, dish names) in their original form when that is the local convention, but write all descriptive text in ${languageName}.`;
 }
 
 function safeParse<T>(s: string | null | undefined): T | null {
@@ -142,21 +148,25 @@ function extractJson(raw: string): string {
   return candidate.slice(start, end + 1);
 }
 
-/** Run a single LLM call to produce the structured payload for a country. */
-export async function generateCountryPayload(country: {
-  name: string;
-  officialName?: string | null;
-  capital?: string | null;
-  region?: string | null;
-  subregion?: string | null;
-  languagesJson?: string | null;
-  currenciesJson?: string | null;
-}): Promise<LlmCountryPayload> {
+/** Run a single LLM call to produce the structured payload for a country.
+ *  `languageName` is the native name of the target language (e.g. "Italian"). */
+export async function generateCountryPayload(
+  country: {
+    name: string;
+    officialName?: string | null;
+    capital?: string | null;
+    region?: string | null;
+    subregion?: string | null;
+    languagesJson?: string | null;
+    currenciesJson?: string | null;
+  },
+  languageName: string = 'English',
+): Promise<LlmCountryPayload> {
   const zai = await getZai();
   const completion = await zai.chat.completions.create({
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserPrompt(country) },
+      { role: 'user', content: buildUserPrompt(country, languageName) },
     ],
     // Structured JSON: disable thinking for speed and determinism.
     thinking: { type: 'disabled' },
@@ -175,8 +185,14 @@ export async function generateCountryPayload(country: {
 /**
  * Persist an LLM payload into the DB (Content + Foods + POIs + PriceEstimate).
  * Idempotent: wipes previous generated rows first so we can re-generate cleanly.
+ * `language` is stored on the content row so we know which language the cached
+ * text is in (and regenerate when the user switches language).
  */
-export async function persistCountryPayload(countryCode: string, p: LlmCountryPayload) {
+export async function persistCountryPayload(
+  countryCode: string,
+  p: LlmCountryPayload,
+  language: string = 'en',
+) {
   // Wipe previously-generated child rows (kept separate from Country metadata).
   await db.food.deleteMany({ where: { countryCode } });
   await db.pointOfInterest.deleteMany({ where: { countryCode } });
@@ -188,6 +204,7 @@ export async function persistCountryPayload(countryCode: string, p: LlmCountryPa
       culture: p.culture.map((s) => `- ${s}`).join('\n'),
       unwrittenRules: p.unwrittenRules.map((s) => `- ${s}`).join('\n'),
       safetyBrief: p.safetyBrief ?? null,
+      contentLanguage: language,
       tagline: p.tagline,
       bestTimeToVisit: p.bestTimeToVisit,
     },
@@ -197,6 +214,7 @@ export async function persistCountryPayload(countryCode: string, p: LlmCountryPa
       culture: p.culture.map((s) => `- ${s}`).join('\n'),
       unwrittenRules: p.unwrittenRules.map((s) => `- ${s}`).join('\n'),
       safetyBrief: p.safetyBrief ?? null,
+      contentLanguage: language,
       tagline: p.tagline,
       bestTimeToVisit: p.bestTimeToVisit,
     },

@@ -7,16 +7,18 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCountryList } from '@/hooks/use-country';
+import { useLanguage } from './language-provider';
 
 type Props = {
   value: string | null;
   onChange: (code: string | null) => void;
 };
 
-/** Searchable country picker, grouped by region. */
+/** Searchable country picker, grouped by region. Region headings are localized. */
 export function CountrySelector({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const { data, isLoading } = useCountryList();
+  const { t, trRegion } = useLanguage();
 
   // Group countries by region for the dropdown.
   type Item = { code: string; name: string; flagEmoji: string | null; capital: string | null };
@@ -60,7 +62,7 @@ export function CountrySelector({ value, onChange }: Props) {
               </>
             ) : (
               <span className="flex items-center gap-2 text-muted-foreground">
-                <Search className="size-4" /> {isLoading ? 'Loading countries…' : 'Pick a country…'}
+                <Search className="size-4" /> {isLoading ? t('selector.loading') : t('selector.placeholder')}
               </span>
             )}
           </span>
@@ -69,11 +71,11 @@ export function CountrySelector({ value, onChange }: Props) {
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[320px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search 189 countries…" />
+          <CommandInput placeholder={t('selector.search')} />
           <CommandList className="max-h-[360px] scroll-soft">
-            <CommandEmpty>No country found.</CommandEmpty>
+            <CommandEmpty>{t('selector.empty')}</CommandEmpty>
             {grouped.map(({ region, countries }) => (
-              <CommandGroup key={region} heading={region}>
+              <CommandGroup key={region} heading={trRegion(region)}>
                 {countries.map((c) => (
                   <CommandItem
                     key={c.code}

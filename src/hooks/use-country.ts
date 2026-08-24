@@ -5,6 +5,8 @@ import type {
   AggregatedCountry,
   CountryListItem,
 } from '@/lib/types';
+import { useLanguage } from '@/components/language-provider';
+import type { Locale } from '@/lib/i18n';
 
 /** Fetch + cache the full country list (for the selector). */
 export function useCountryList() {
@@ -20,13 +22,20 @@ export function useCountryList() {
   });
 }
 
-/** Fetch + cache the aggregated dashboard for one country. */
+/**
+ * Fetch + cache the aggregated dashboard for one country.
+ *
+ * The locale is part of the query key: switching language triggers a refetch,
+ * which may regenerate the LLM content in the new language (one-time cost,
+ * then cached in the DB in that language).
+ */
 export function useCountry(code: string | null) {
+  const { locale } = useLanguage();
   return useQuery<AggregatedCountry>({
-    queryKey: ['country', code],
+    queryKey: ['country', code, locale as Locale],
     enabled: !!code,
     queryFn: async () => {
-      const res = await fetch(`/api/countries/${code}`, { cache: 'no-store' });
+      const res = await fetch(`/api/countries/${code}?lang=${locale}`, { cache: 'no-store' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `Failed to load country ${code}`);

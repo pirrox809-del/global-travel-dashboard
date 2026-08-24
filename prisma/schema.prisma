@@ -93,6 +93,9 @@ model CountryContent {
   /// LLM-generated general safety brief (used as fallback when the live
   /// US State Dept advisory API is unreachable). Plain text paragraph.
   safetyBrief     String?
+  /// ISO 639-1 language code the content was generated in (en/es/it/fr).
+  /// When a user requests a different language, the content is regenerated.
+  contentLanguage String? @default("en")
   /// Short tagline, e.g. "The Hexagon of gastronomy and art de vivre".
   tagline         String?
   /// Best months to visit, e.g. "Apr–Jun, Sep–Oct".

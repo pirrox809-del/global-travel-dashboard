@@ -6,10 +6,12 @@ import { Globe2, Compass, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useT } from '@/components/language-provider';
 
 /** Quick-pick shortcuts shown on the empty state. */
 const FEATURED = [
@@ -31,6 +33,7 @@ export function DashboardApp() {
 
 function DashboardAppInner() {
   const params = useSearchParams();
+  const t = useT();
   const [selected, setSelected] = useState<string | null>(params.get('c')?.toUpperCase() ?? null);
 
   // Keep URL in sync with selection (shareable links).
@@ -53,9 +56,7 @@ function DashboardAppInner() {
 
   return (
     <div className="relative flex min-h-screen flex-col">
-      {/* Ambient animated backdrop — warm amber neural-noise shader.
-          Sits at z-0; all content lives in a z-10 wrapper above it.
-          opacity kept low so it reads as a soft aurora, not a distraction. */}
+      {/* Ambient animated backdrop — warm amber neural-noise shader. */}
       <NeuralNoise color={[0.95, 0.5, 0.18]} opacity={0.55} speed={0.0008} />
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -67,17 +68,18 @@ function DashboardAppInner() {
                 <Compass className="size-5" />
               </div>
               <div className="leading-tight">
-                <h1 className="text-base font-bold tracking-tight sm:text-lg">Global Travel Dashboard</h1>
+                <h1 className="text-base font-bold tracking-tight sm:text-lg">{t('app.title')}</h1>
                 <p className="hidden text-[11px] text-muted-foreground sm:block">
-                  189 countries · live weather, FX &amp; advisories
+                  {t('app.subtitle')}
                 </p>
               </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <Badge variant="secondary" className="hidden md:flex gap-1.5 bg-background/50 backdrop-blur">
                 <Sparkles className="size-3 text-amber-500" />
-                AI-curated
+                {t('app.aiCurated')}
               </Badge>
+              <LanguageSwitcher />
               <ThemeToggle />
             </div>
           </div>
@@ -106,7 +108,7 @@ function DashboardAppInner() {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Globe2 className="size-3.5" />
-                  Data sources:
+                  {t('footer.sources')}
                 </span>
                 <a className="hover:text-foreground hover:underline transition-colors" href="https://github.com/mledoze/countries" target="_blank" rel="noreferrer">mledoze/countries</a>
                 <a className="hover:text-foreground hover:underline transition-colors" href="https://open-meteo.com" target="_blank" rel="noreferrer">Open-Meteo</a>
@@ -114,7 +116,7 @@ function DashboardAppInner() {
                 <a className="hover:text-foreground hover:underline transition-colors" href="https://traveladvisory.state.gov" target="_blank" rel="noreferrer">US State Dept</a>
               </div>
               <p className="text-[11px] text-muted-foreground/80">
-                Hotel &amp; flight ranges are LLM-generated estimates · not live booking data.
+                {t('footer.disclaimer')}
               </p>
             </div>
           </div>
@@ -125,6 +127,7 @@ function DashboardAppInner() {
 }
 
 function EmptyState({ onPick }: { onPick: (code: string) => void }) {
+  const t = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -151,18 +154,17 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
 
       <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">
         <Sparkles className="size-3 text-amber-500" />
-        189 countries · one dashboard
+        {t('empty.badge')}
       </Badge>
       <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
-        Pick a country,
+        {t('empty.title1')}
         <br />
         <span className="bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
-          see everything.
+          {t('empty.title2')}
         </span>
       </h2>
       <p className="mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
-        Live weather, ECB exchange rates, travel advisories, AI-curated culture, food,
-        must-see places and price estimates — aggregated for any of the 189 countries.
+        {t('empty.body')}
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-2">
         {FEATURED.map((f, i) => (
@@ -185,7 +187,7 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
         ))}
       </div>
       <p className="mt-8 text-xs text-muted-foreground/80">
-        Or search the dropdown above. First visit to each country generates its travel brief.
+        {t('empty.hint')}
       </p>
     </motion.div>
   );

@@ -25,3 +25,26 @@ Stage Summary:
 - Two-layer caching: TTL in-memory for dynamic data + permanent DB rows for LLM content. Measured: 33.7s first call → 0.04s second call.
 - Graceful degradation proven (EGP not on ECB list, US State Dept unreachable → AI brief fallback).
 - Production architecture documented inline in every file. Swap cache→Redis or SQLite→PostgreSQL is a 1-file change each.
+
+---
+Task ID: 2
+Agent: main (Z.ai Code)
+Task: Add multilingual support (EN/ES/IT/FR) + answer data-accuracy question.
+
+Work Log:
+- Answered accuracy question honestly: weather/FX/metadata are REAL (live APIs); culture/food/POI/prices/safety-brief are AI-curated (clearly labelled in UI).
+- Built `src/lib/i18n.ts`: 4-locale dictionary (en/es/it/fr) covering ~90 UI strings + region-name translations + locale-aware date/time formatters. Custom solution (not next-intl routing) because the project constraint is single-route `/`.
+- Built `LanguageProvider` context with `useSyncExternalStore` for hydration-safe locale detection (localStorage + browser language), avoiding the setState-in-effect lint rule. Exposes `t()`, `trRegion()`, `fmt` formatters.
+- Built `LanguageSwitcher` (Popover + Command) with flag + ISO code, persisted to localStorage.
+- Added `contentLanguage` field to `CountryContent` Prisma schema. The aggregator now regenerates LLM content when the cached language differs from the requested locale — one regeneration per language switch per country, then cached again.
+- Updated LLM prompt to instruct the model to write ALL human-readable text in the target language (passed as native name: "Italian", "Spanish", etc.).
+- Updated API route `/api/countries/[code]?lang=XX` to read the locale; updated `useCountry` hook to send `?lang=` + include locale in the query key (so language switches trigger refetch).
+- Rewrote all 10 UI components to use `useT()`/`useLanguage()`: header, footer, selector, empty state, hero, weather/exchange/advisory/overview/culture/food/poi/price cards, source badges.
+- Browser-verified: switched EN→IT (UI translated instantly, France content regenerated in Italian ~15s: "La Francia: arte, storia e gastronomia…", tagline/safety/overview/food all Italian), EN→ES (regenerated in Spanish ~15s). Zero console errors. Mobile + desktop verified.
+
+Stage Summary:
+- 4 languages fully working: English, Español, Italiano, Français.
+- UI chrome translates instantly (no API call). LLM content regenerates on language switch (~15s one-time per country per language, then cached in DB).
+- Country names stay in English (proper nouns, universally recognizable). Region headings localized (Europa, Afrique, África…).
+- Dates/times locale-aware (lun 24, lun. 24, Mon 24).
+- `contentLanguage` tracked per country so we know which language is cached and regenerate only when needed.

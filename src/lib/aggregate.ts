@@ -27,6 +27,7 @@ import { getWeather, describeWeatherCode } from '@/lib/external/open-meteo';
 import { convertCurrency } from '@/lib/external/frankfurter';
 import { getAdvisory } from '@/lib/external/travel-advisory';
 import { generateCountryPayload, persistCountryPayload } from '@/lib/external/llm-content';
+import { LOCALE_NATIVE, DEFAULT_LOCALE, type Locale } from '@/lib/i18n';
 import type { AggregatedCountry, CountryStatic, CountryDynamic } from '@/lib/types';
 
 /** Helper: parse the JSON-encoded language map from the Country row. */
@@ -61,8 +62,19 @@ function parseStringArray(json: string | null): string[] {
   }
 }
 
-/** Return the static, DB-sourced payload for a country (with LLM content). */
-async function loadStatic(code: string): Promise<{ staticData: CountryStatic; justGenerated: boolean } | null> {
+/**
+ * Return the static, DB-sourced payload for a country (with LLM content).
+ *
+ * `locale` drives the LANGUAGE of the generated content. We persist
+ * `contentLanguage` on the row; if the cached content's language doesn't
+ * match the requested locale, we regenerate in the new language (one LLM
+ * call) and persist it. This means switching language costs one generation
+ * per country, then it's cached again.
+ */
+async function loadStatic(
+  code: string,
+  locale: Locale,
+): Promise<{ staticData: CountryStatic; justGenerated: boolean } | null> {
   const country = await db.country.findUnique({
     where: { code: code.toUpperCase() },
     include: {
@@ -75,10 +87,13 @@ async function loadStatic(code: string): Promise<{ staticData: CountryStatic; ju
   if (!country) return null;
 
   let justGenerated = false;
-  // Lazy LLM generation: if no curated content yet, generate + persist now.
-  if (!country.content) {
-    const payload = await generateCountryPayload(country);
-    await persistCountryPayload(country.code, payload);
+  // Lazy LLM generation: generate if no content yet OR if the cached content
+  // is in a different language than the one requested now.
+  const needsGeneration =
+    !country.content || (country.content.contentLanguage ?? 'en') !== locale;
+  if (needsGeneration) {
+    const payload = await generateCountryPayload(country, LOCALE_NATIVE[locale]);
+    await persistCountryPayload(country.code, payload, locale);
     justGenerated = true;
     // Re-read so the returned payload includes the freshly generated rows.
     const refreshed = await db.country.findUnique({
@@ -154,15 +169,23 @@ function toDto(c: NonNullable<Awaited<ReturnType<typeof db.country.findUnique<{ 
 /**
  * THE AGGREGATOR. Returns the full dashboard payload for one country.
  *
+ * `locale` controls the language of LLM-generated content (overview, culture,
+ * food, POIs, price notes, safety brief). Switching language triggers one
+ * regeneration per country (then cached again in the new language).
+ *
  * Note on caching: we do NOT wrap the whole call in `cache.wrap` because the
  * dynamic data has its own TTLs inside each client. Static content is cached
  * permanently in the DB. This avoids the "stale-weather" problem.
  */
-export async function aggregateCountry(code: string): Promise<AggregatedCountry | null> {
+export async function aggregateCountry(
+  code: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<AggregatedCountry | null> {
   const upper = code.toUpperCase();
 
-  // 1. Load static data (DB). May trigger a one-time LLM generation.
-  const staticResult = await loadStatic(upper);
+  // 1. Load static data (DB). May trigger a one-time LLM generation
+  //    (or a re-generation if the cached content's language differs).
+  const staticResult = await loadStatic(upper, locale);
   if (!staticResult) return null;
   const { staticData, justGenerated } = staticResult;
 

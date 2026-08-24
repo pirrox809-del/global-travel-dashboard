@@ -3,17 +3,19 @@
 import { Sparkles, ScrollText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CountryStatic } from '@/lib/types';
+import { useT } from '@/components/language-provider';
 import { SourceBadge } from './source-badge';
 
 /** Culture + Unwritten rules side by side (or stacked on mobile). */
 export function CultureCard({ content }: { content: NonNullable<CountryStatic['content']> }) {
+  const t = useT();
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <Card className="animate-card-in">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <Sparkles className="size-4 text-violet-500" />
-            Culture
+            {t('card.culture')}
           </CardTitle>
           <SourceBadge source="curated" />
         </CardHeader>
@@ -26,7 +28,7 @@ export function CultureCard({ content }: { content: NonNullable<CountryStatic['c
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
             <ScrollText className="size-4 text-amber-500" />
-            Unwritten Rules
+            {t('card.unwrittenRules')}
           </CardTitle>
           <SourceBadge source="curated" />
         </CardHeader>
@@ -44,10 +46,7 @@ function BulletList({ markdown, accent }: { markdown: string; accent: 'violet' |
     .split('\n')
     .map((l) => l.replace(/^[-•]\s*/, '').trim())
     .filter(Boolean);
-  const dot =
-    accent === 'violet'
-      ? 'bg-violet-500'
-      : 'bg-amber-500';
+  const dot = accent === 'violet' ? 'bg-violet-500' : 'bg-amber-500';
   return (
     <ul className="space-y-2">
       {bullets.map((b, i) => (

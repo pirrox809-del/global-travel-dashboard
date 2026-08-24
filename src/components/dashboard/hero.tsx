@@ -3,15 +3,15 @@
 import { CalendarClock, Globe2, Languages, MapPin, Phone, Ruler, Users, Clock, Coins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { CountryStatic } from '@/lib/types';
+import { useLanguage } from '@/components/language-provider';
 
 /**
  * Top hero: flag, name, tagline, and a grid of metadata chips.
- *
- * The faint giant emoji flag stays as a subtle texture watermark behind the
- * glass card; the animated neural-noise backdrop is the ambient "world" feel
- * the dashboard sits on.
+ * Metadata labels are localized; the faint giant emoji flag stays as a
+ * subtle texture watermark behind the glass card.
  */
 export function CountryHero({ country }: { country: CountryStatic }) {
+  const { t, trRegion } = useLanguage();
   const languages = country.languages.slice(0, 4);
   const currencies = country.currencies.slice(0, 3);
   const population = country.population ? Number(country.population).toLocaleString('en-US') : null;
@@ -62,7 +62,7 @@ export function CountryHero({ country }: { country: CountryStatic }) {
                 className="gap-1.5 border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
               >
                 <CalendarClock className="size-3.5" />
-                Best time to visit: {country.content.bestTimeToVisit}
+                {t('hero.bestTime', { value: country.content.bestTimeToVisit })}
               </Badge>
             </div>
           ) : null}
@@ -72,38 +72,38 @@ export function CountryHero({ country }: { country: CountryStatic }) {
       {/* Metadata chips grid */}
       <dl className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {country.region ? (
-          <Meta icon={<Globe2 className="size-4" />} label="Region" value={[country.region, country.subregion].filter(Boolean).join(' · ')} />
+          <Meta icon={<Globe2 className="size-4" />} label={t('hero.region')} value={[trRegion(country.region), country.subregion].filter(Boolean).join(' · ')} />
         ) : null}
         {country.capital ? (
-          <Meta icon={<MapPin className="size-4" />} label="Capital" value={country.capital} />
+          <Meta icon={<MapPin className="size-4" />} label={t('hero.capital')} value={country.capital} />
         ) : null}
         {population ? (
-          <Meta icon={<Users className="size-4" />} label="Population" value={population} />
+          <Meta icon={<Users className="size-4" />} label={t('hero.population')} value={population} />
         ) : null}
         {area ? (
-          <Meta icon={<Ruler className="size-4" />} label="Area" value={`${area} km²`} />
+          <Meta icon={<Ruler className="size-4" />} label={t('hero.area')} value={`${area} km²`} />
         ) : null}
         {languages.length ? (
           <Meta
             icon={<Languages className="size-4" />}
-            label="Languages"
+            label={t('hero.languages')}
             value={languages.map((l) => l.name).join(', ')}
           />
         ) : null}
         {currencies.length ? (
           <Meta
             icon={<Coins className="size-4" />}
-            label="Currency"
+            label={t('hero.currency')}
             value={currencies.map((c) => `${c.code} (${c.symbol ?? c.name})`).join(', ')}
           />
         ) : null}
         {country.callingCodes.length ? (
-          <Meta icon={<Phone className="size-4" />} label="Calling code" value={country.callingCodes.join(', ')} />
+          <Meta icon={<Phone className="size-4" />} label={t('hero.callingCode')} value={country.callingCodes.join(', ')} />
         ) : null}
         {country.timezones.length ? (
           <Meta
             icon={<Clock className="size-4" />}
-            label="Timezone"
+            label={t('hero.timezone')}
             value={country.timezones.slice(0, 2).join(', ')}
           />
         ) : null}

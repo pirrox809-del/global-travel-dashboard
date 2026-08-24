@@ -3,43 +3,39 @@
 import { Hotel, Plane, UtensilsCrossed } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CountryStatic } from '@/lib/types';
+import { useT } from '@/components/language-provider';
 import { SourceBadge } from './source-badge';
 
-/**
- * Price estimates card.
- *
- * NOTE: There is NO free live hotel/flight API. These ranges are
- * LLM-generated regional estimates, persisted in our DB. They are clearly
- * labelled "estimates" in the UI to set correct expectations.
- */
+/** Price estimates card. Ranges are LLM-generated regional estimates. */
 export function PriceCard({ estimate }: { estimate: NonNullable<CountryStatic['priceEstimate']> }) {
+  const t = useT();
   return (
     <Card className="animate-card-in">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <Hotel className="size-4 text-cyan-600" />
-          Price Estimates
+          {t('card.price')}
         </CardTitle>
         <SourceBadge source="llm · estimate" />
       </CardHeader>
       <CardContent className="space-y-4">
-        <Section icon={<Hotel className="size-3.5" />} label="Hotels (per night)">
-          <Row label="Budget" value={`${estimate.budgetHotelEur} €`} tone="emerald" />
-          <Row label="Mid-range" value={`${estimate.midHotelEur} €`} tone="amber" />
-          <Row label="Luxury" value={`${estimate.luxuryHotelEur} €`} tone="rose" />
+        <Section icon={<Hotel className="size-3.5" />} label={t('price.hotelsPerNight')}>
+          <Row label={t('price.budget')} value={`${estimate.budgetHotelEur} €`} tone="emerald" />
+          <Row label={t('price.midRange')} value={`${estimate.midHotelEur} €`} tone="amber" />
+          <Row label={t('price.luxury')} value={`${estimate.luxuryHotelEur} €`} tone="rose" />
         </Section>
-        <Section icon={<Plane className="size-3.5" />} label="Flights">
-          <Row label="Round-trip from EU" value={`${estimate.flightFromEuEur} €`} tone="cyan" />
+        <Section icon={<Plane className="size-3.5" />} label={t('price.flights')}>
+          <Row label={t('price.roundTripEu')} value={`${estimate.flightFromEuEur} €`} tone="cyan" />
         </Section>
-        <Section icon={<UtensilsCrossed className="size-3.5" />} label="Meals">
-          <Row label="Street / budget" value={`${estimate.mealBudgetEur} €`} tone="emerald" />
-          <Row label="Mid restaurant" value={`${estimate.mealMidEur} €`} tone="amber" />
+        <Section icon={<UtensilsCrossed className="size-3.5" />} label={t('price.meals')}>
+          <Row label={t('price.streetBudget')} value={`${estimate.mealBudgetEur} €`} tone="emerald" />
+          <Row label={t('price.midRestaurant')} value={`${estimate.mealMidEur} €`} tone="amber" />
         </Section>
         {estimate.notes ? (
           <p className="text-xs text-muted-foreground italic border-t pt-2">{estimate.notes}</p>
         ) : null}
         <p className="text-[10px] text-muted-foreground/70">
-          Ranges are regional estimates (LLM-generated), not live booking data.
+          {t('price.disclaimer')}
         </p>
       </CardContent>
     </Card>

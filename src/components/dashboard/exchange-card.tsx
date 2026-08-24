@@ -4,16 +4,18 @@ import { Euro } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { CountryDynamic } from '@/lib/types';
+import { useT } from '@/components/language-provider';
 import { SourceBadge } from './source-badge';
 
 /** Live ECB exchange-rate card (Frankfurter API). */
 export function ExchangeCard({ exchange }: { exchange: CountryDynamic['exchange'] }) {
+  const t = useT();
   return (
     <Card className="animate-card-in">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
           <Euro className="size-4 text-emerald-600" />
-          Exchange Rate
+          {t('card.exchange')}
         </CardTitle>
         <SourceBadge source="frankfurter · ECB" />
       </CardHeader>
@@ -22,7 +24,7 @@ export function ExchangeCard({ exchange }: { exchange: CountryDynamic['exchange'
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <span className="text-3xl">💱</span>
             <p className="mt-2 text-sm text-muted-foreground">
-              {exchange.currency ? `${exchange.currency} not on ECB list` : 'FX unavailable'}
+              {exchange.currency ? t('exchange.notOnList', { currency: exchange.currency }) : t('exchange.unavailable')}
             </p>
             <Badge variant="outline" className="mt-2 text-[10px] font-normal opacity-70 max-w-full truncate">
               {exchange.error}
@@ -40,7 +42,7 @@ export function ExchangeCard({ exchange }: { exchange: CountryDynamic['exchange'
               <RateRow base="GBP" amount={exchange.perGbp} />
             </div>
             <p className="mt-3 text-[11px] text-muted-foreground">
-              ECB reference rate · {exchange.date}
+              {t('exchange.ecbRate', { date: exchange.date })}
             </p>
           </div>
         )}

@@ -4,6 +4,7 @@ import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useCountry } from '@/hooks/use-country';
+import { useT } from '@/components/language-provider';
 import type { AggregatedCountry } from '@/lib/types';
 
 import { CountryHero } from './hero';
@@ -20,11 +21,9 @@ import { DashboardSkeleton } from './skeletons';
 /**
  * Orchestrator: takes a country code, calls the aggregator, and renders
  * the full dashboard. Handles loading / error / success states cleanly.
- *
- * The "first-time generation" banner is shown when `meta.staticContentGenerated`
- * is true — meaning we just paid the one-time LLM cost for this country.
  */
 export function Dashboard({ code }: { code: string }) {
+  const t = useT();
   const { data, isLoading, isError, error, refetch, isFetching } = useCountry(code);
 
   if (isLoading) return <DashboardSkeleton />;
@@ -33,11 +32,11 @@ export function Dashboard({ code }: { code: string }) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="size-4" />
-        <AlertTitle>Couldn’t load this country</AlertTitle>
+        <AlertTitle>{t('dash.errorTitle')}</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
-          <span className="text-sm">{(error as Error)?.message ?? 'Unknown error'}</span>
+          <span className="text-sm">{(error as Error)?.message ?? t('dash.unknownError')}</span>
           <Button size="sm" variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="size-3.5" /> Retry
+            <RefreshCw className="size-3.5" /> {t('dash.retry')}
           </Button>
         </AlertDescription>
       </Alert>
@@ -56,6 +55,7 @@ function DashboardContent({
   refetching: boolean;
   onRefetch: () => void;
 }) {
+  const t = useT();
   const { country, dynamic, meta } = data;
   return (
     <div className="space-y-6">
@@ -63,10 +63,10 @@ function DashboardContent({
         <Alert className="border-emerald-500/30 bg-emerald-500/5">
           <Sparkles className="size-4 text-emerald-600" />
           <AlertTitle className="text-emerald-700 dark:text-emerald-300">
-            Just curated for you
+            {t('dash.justCurated.title')}
           </AlertTitle>
           <AlertDescription className="text-xs">
-            This country&apos;s travel brief was generated on-the-fly and cached. Future visits will be instant.
+            {t('dash.justCurated.body')}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -96,11 +96,11 @@ function DashboardContent({
       {/* Refresh + cache meta — refined glass */}
       <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 px-4 py-2.5 text-xs text-muted-foreground backdrop-blur-xl">
         <span>
-          Generated {new Date(meta.generatedAt).toLocaleTimeString('en-US')} · cache {meta.cache.hits} hits / {meta.cache.misses} misses · {meta.cache.size} keys
+          {t('dash.generated')} {new Date(meta.generatedAt).toLocaleTimeString()} · {t('dash.cacheHits')} {meta.cache.hits} / {t('dash.cacheMisses')} {meta.cache.misses} · {meta.cache.size} {t('dash.cacheKeys')}
         </span>
         <Button size="sm" variant="ghost" onClick={onRefetch} disabled={refetching} className="h-7 gap-1.5">
           <RefreshCw className={`size-3.5 ${refetching ? 'animate-spin' : ''}`} />
-          {refetching ? 'Refreshing…' : 'Refresh'}
+          {refetching ? t('dash.refreshing') : t('dash.refresh')}
         </Button>
       </div>
     </div>
