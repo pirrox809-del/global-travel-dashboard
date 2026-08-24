@@ -73,8 +73,8 @@ function DashboardContent({
 
       <CountryHero country={country} />
 
-      {/* Live data row (3 cards) */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Live data row (3 cards) — staggered cascade entrance */}
+      <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <WeatherCard weather={dynamic.weather} />
         <ExchangeCard exchange={dynamic.exchange} />
         <AdvisoryCard advisory={dynamic.advisory} />
@@ -86,15 +86,15 @@ function DashboardContent({
       {/* Culture + unwritten rules (2 columns) */}
       {country.content ? <CultureCard content={country.content} /> : null}
 
-      {/* Food + POI + Price (3 columns) */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Food + POI + Price (3 columns) — staggered cascade entrance */}
+      <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <FoodCard foods={country.foods} />
         <PoiCard pois={country.pois} />
         {country.priceEstimate ? <PriceCard estimate={country.priceEstimate} /> : null}
       </div>
 
-      {/* Refresh + cache meta */}
-      <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-2.5 text-xs text-muted-foreground">
+      {/* Refresh + cache meta — refined glass */}
+      <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 px-4 py-2.5 text-xs text-muted-foreground backdrop-blur-xl">
         <span>
           Generated {new Date(meta.generatedAt).toLocaleTimeString('en-US')} · cache {meta.cache.hits} hits / {meta.cache.misses} misses · {meta.cache.size} keys
         </span>

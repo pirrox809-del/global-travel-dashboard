@@ -7,7 +7,10 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        // Glassmorphism: translucent card over the animated neural-noise backdrop,
+        // frosted via backdrop-blur. Border softened so the glass reads as a single
+        // surface. Subtle shadow + hover lift for a premium, fluid feel.
+        "bg-card/70 text-card-foreground flex flex-col gap-6 rounded-2xl border border-border/50 py-6 shadow-sm shadow-black/[0.03] backdrop-blur-xl transition-[box-shadow,transform] duration-300 hover:shadow-md hover:shadow-black/[0.06]",
         className
       )}
       {...props}

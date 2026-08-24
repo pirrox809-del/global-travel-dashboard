@@ -3,61 +3,84 @@
 import { CalendarClock, Globe2, Languages, MapPin, Phone, Ruler, Users, Clock, Coins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { CountryStatic } from '@/lib/types';
+import { CountryGlobe } from './country-globe';
 
-/** Top hero: flag, name, tagline, and a grid of metadata chips. */
+/**
+ * Top hero: flag, name, tagline, metadata chips, and a small decorative
+ * globe (desktop only) that marks the country's capital location.
+ *
+ * The globe is positioned absolutely on the right; on mobile it's hidden to
+ * keep the hero compact and readable. The flag watermark stays as a subtle
+ * texture, but the globe is the new "world" centerpiece tying into the
+ * neural-noise backdrop.
+ */
 export function CountryHero({ country }: { country: CountryStatic }) {
   const languages = country.languages.slice(0, 4);
   const currencies = country.currencies.slice(0, 3);
   const population = country.population ? Number(country.population).toLocaleString('en-US') : null;
   const area = country.area ? Number(country.area).toLocaleString('en-US') : null;
+  const hasCoords = country.latitude != null && country.longitude != null;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border bg-card p-6 sm:p-8 shadow-sm">
+    <section className="animate-fade-up relative overflow-hidden rounded-2xl border border-border/50 bg-card/60 p-6 shadow-sm shadow-black/[0.03] backdrop-blur-xl sm:p-8">
       {/* Faint giant flag watermark */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-6 -top-10 text-[12rem] leading-none opacity-[0.06] select-none"
+        className="pointer-events-none absolute -right-6 -top-10 select-none text-[12rem] leading-none opacity-[0.05]"
       >
         {country.flagEmoji ?? '🏳️'}
       </div>
 
-      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+      {/* 2-column layout on desktop: content left, decorative globe right. */}
+      <div className="relative grid gap-6 lg:grid-cols-[1fr_minmax(0,260px)] lg:items-start lg:gap-8">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             {country.flagUrl ? (
               <img
                 src={country.flagUrl}
                 alt={`Flag of ${country.name}`}
-                className="size-14 rounded-lg object-cover shadow-sm ring-1 ring-border sm:size-16"
+                className="size-14 rounded-xl object-cover shadow-md ring-1 ring-border/60 sm:size-16"
               />
             ) : (
               <span className="text-5xl sm:text-6xl">{country.flagEmoji ?? '🏳️'}</span>
             )}
             <div className="min-w-0">
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl truncate">
+              <h1 className="truncate text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
                 {country.name}
               </h1>
               {country.officialName && country.officialName !== country.name ? (
-                <p className="text-sm text-muted-foreground truncate">{country.officialName}</p>
+                <p className="truncate text-sm text-muted-foreground">{country.officialName}</p>
               ) : null}
             </div>
           </div>
 
           {country.content?.tagline ? (
-            <p className="mt-4 max-w-2xl text-lg text-foreground/80 italic">
-              “{country.content.tagline}”
+            <p className="mt-4 max-w-2xl text-lg font-light italic text-foreground/80">
+              &ldquo;{country.content.tagline}&rdquo;
             </p>
           ) : null}
 
           {country.content?.bestTimeToVisit ? (
             <div className="mt-4">
-              <Badge variant="secondary" className="gap-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/15">
+              <Badge
+                variant="secondary"
+                className="gap-1.5 border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
+              >
                 <CalendarClock className="size-3.5" />
                 Best time to visit: {country.content.bestTimeToVisit}
               </Badge>
             </div>
           ) : null}
         </div>
+
+        {/* Decorative globe marking the country's location (desktop only). */}
+        {hasCoords ? (
+          <div className="pointer-events-none relative mx-auto hidden aspect-square w-full max-w-[260px] lg:block">
+            <CountryGlobe lat={country.latitude!} lng={country.longitude!} className="!max-w-none" />
+            {/* radial vignette to fade globe edges into the card */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_55%,var(--card)_82%)]" />
+          </div>
+        ) : null}
       </div>
 
       {/* Metadata chips grid */}
@@ -105,12 +128,12 @@ export function CountryHero({ country }: { country: CountryStatic }) {
 
 function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-background/60 p-3">
+    <div className="rounded-xl border border-border/50 bg-background/50 p-3 backdrop-blur-md transition-colors hover:border-border hover:bg-background/70">
       <dt className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         {icon}
         {label}
       </dt>
-      <dd className="mt-1 text-sm font-medium leading-snug line-clamp-2">{value}</dd>
+      <dd className="mt-1 line-clamp-2 text-sm font-medium leading-snug">{value}</dd>
     </div>
   );
 }

@@ -3,9 +3,12 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Globe2, Compass, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Dashboard } from '@/components/dashboard/dashboard';
+import { NeuralNoise } from '@/components/ui/neural-noise';
+import { Globe } from '@/components/ui/globe';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -50,95 +53,141 @@ function DashboardAppInner() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="grid size-9 place-items-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
-              <Compass className="size-5" />
+    <div className="relative flex min-h-screen flex-col">
+      {/* Ambient animated backdrop — warm amber neural-noise shader.
+          Sits at z-0; all content lives in a z-10 wrapper above it.
+          opacity kept low so it reads as a soft aurora, not a distraction. */}
+      <NeuralNoise color={[0.95, 0.5, 0.18]} opacity={0.55} speed={0.0008} />
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Sticky header — refined glass */}
+        <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-2.5">
+              <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-md shadow-amber-500/20">
+                <Compass className="size-5" />
+              </div>
+              <div className="leading-tight">
+                <h1 className="text-base font-bold tracking-tight sm:text-lg">Global Travel Dashboard</h1>
+                <p className="hidden text-[11px] text-muted-foreground sm:block">
+                  189 countries · live weather, FX &amp; advisories
+                </p>
+              </div>
             </div>
-            <div className="leading-tight">
-              <h1 className="text-base font-bold tracking-tight sm:text-lg">Global Travel Dashboard</h1>
-              <p className="hidden text-[11px] text-muted-foreground sm:block">
-                189 countries · live weather, FX &amp; advisories
+            <div className="ml-auto flex items-center gap-2">
+              <Badge variant="secondary" className="hidden md:flex gap-1.5 bg-background/50 backdrop-blur">
+                <Sparkles className="size-3 text-amber-500" />
+                AI-curated
+              </Badge>
+              <ThemeToggle />
+            </div>
+          </div>
+        </header>
+
+        {/* Selector bar */}
+        <div className="sticky top-[57px] z-30 border-b border-border/40 bg-background/50 backdrop-blur-xl">
+          <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
+            <CountrySelector value={selected} onChange={setSelected} />
+          </div>
+        </div>
+
+        {/* Main content */}
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          {selected ? (
+            <Dashboard key={selected} code={selected} />
+          ) : (
+            <EmptyState onPick={setSelected} />
+          )}
+        </main>
+
+        {/* Sticky footer — refined glass */}
+        <footer className="mt-auto border-t border-border/40 bg-background/50 backdrop-blur-xl">
+          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Globe2 className="size-3.5" />
+                  Data sources:
+                </span>
+                <a className="hover:text-foreground hover:underline transition-colors" href="https://github.com/mledoze/countries" target="_blank" rel="noreferrer">mledoze/countries</a>
+                <a className="hover:text-foreground hover:underline transition-colors" href="https://open-meteo.com" target="_blank" rel="noreferrer">Open-Meteo</a>
+                <a className="hover:text-foreground hover:underline transition-colors" href="https://frankfurter.dev" target="_blank" rel="noreferrer">Frankfurter · ECB</a>
+                <a className="hover:text-foreground hover:underline transition-colors" href="https://traveladvisory.state.gov" target="_blank" rel="noreferrer">US State Dept</a>
+              </div>
+              <p className="text-[11px] text-muted-foreground/80">
+                Hotel &amp; flight ranges are LLM-generated estimates · not live booking data.
               </p>
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Badge variant="secondary" className="hidden md:flex gap-1.5">
-              <Sparkles className="size-3 text-emerald-500" />
-              AI-curated
-            </Badge>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      {/* Selector bar */}
-      <div className="sticky top-[57px] z-30 border-b bg-background/70 backdrop-blur-md">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
-          <CountrySelector value={selected} onChange={setSelected} />
-        </div>
+        </footer>
       </div>
-
-      {/* Main content */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
-        {selected ? (
-          <Dashboard key={selected} code={selected} />
-        ) : (
-          <EmptyState onPick={setSelected} />
-        )}
-      </main>
-
-      {/* Sticky footer */}
-      <footer className="mt-auto border-t bg-card/60 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Globe2 className="size-3.5" />
-                Data sources:
-              </span>
-              <a className="hover:text-foreground hover:underline" href="https://restcountries.com" target="_blank" rel="noreferrer">REST Countries</a>
-              <a className="hover:text-foreground hover:underline" href="https://open-meteo.com" target="_blank" rel="noreferrer">Open-Meteo</a>
-              <a className="hover:text-foreground hover:underline" href="https://frankfurter.app" target="_blank" rel="noreferrer">Frankfurter · ECB</a>
-              <a className="hover:text-foreground hover:underline" href="https://traveladvisory.state.gov" target="_blank" rel="noreferrer">US State Dept</a>
-            </div>
-            <p className="text-[11px] text-muted-foreground/80">
-              Hotel &amp; flight ranges are LLM-generated estimates · not live booking data.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
 
 function EmptyState({ onPick }: { onPick: (code: string) => void }) {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col items-center py-12 text-center sm:py-20">
-      <div className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
-        <Globe2 className="size-8" />
-      </div>
-      <h2 className="mt-6 text-2xl font-bold tracking-tight sm:text-3xl">
-        Pick a country, see everything.
-      </h2>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Live weather, ECB exchange rates, US State Dept advisories, AI-curated culture, food,
-        must-see places and price estimates — aggregated in one dashboard for any of the 189 countries.
-      </p>
-      <div className="mt-8 flex flex-wrap justify-center gap-2">
-        {FEATURED.map((f) => (
-          <Button key={f.code} variant="outline" size="sm" onClick={() => onPick(f.code)} className="gap-1.5">
-            <Sparkles className="size-3 text-emerald-500" />
-            {f.name}
-          </Button>
-        ))}
-      </div>
-      <p className="mt-8 text-xs text-muted-foreground">
-        Or search the dropdown above. First visit to each country takes ~5s to generate its travel brief.
-      </p>
+    <div className="relative mx-auto flex min-h-[calc(100vh-220px)] max-w-4xl flex-col items-center justify-center py-10 text-center">
+      {/* The globe: large, centered, behind the headline. The headline sits
+          above with a soft radial vignette so text stays legible. */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        className="pointer-events-none absolute inset-0 mx-auto flex items-start justify-center"
+      >
+        <div className="relative aspect-square w-full max-w-[460px] sm:max-w-[520px]">
+          <Globe className="!max-w-none" />
+          {/* radial vignette to fade the globe edges into the background */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_45%,var(--background)_75%)]" />
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 flex flex-col items-center pt-[180px] sm:pt-[220px]"
+      >
+        <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">
+          <Sparkles className="size-3 text-amber-500" />
+          189 countries · one dashboard
+        </Badge>
+        <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
+          Pick a country,
+          <br />
+          <span className="bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
+            see everything.
+          </span>
+        </h2>
+        <p className="mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
+          Live weather, ECB exchange rates, travel advisories, AI-curated culture, food,
+          must-see places and price estimates — aggregated for any of the 189 countries.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-2">
+          {FEATURED.map((f, i) => (
+            <motion.div
+              key={f.code}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5 + i * 0.06, ease: 'easeOut' }}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPick(f.code)}
+                className="gap-1.5 border-border/50 bg-background/50 backdrop-blur-md hover:bg-background/80 hover:border-amber-500/40 transition-all"
+              >
+                <Sparkles className="size-3 text-amber-500" />
+                {f.name}
+              </Button>
+            </motion.div>
+          ))}
+        </div>
+        <p className="mt-8 text-xs text-muted-foreground/80">
+          Or search the dropdown above. First visit to each country generates its travel brief.
+        </p>
+      </motion.div>
     </div>
   );
 }
