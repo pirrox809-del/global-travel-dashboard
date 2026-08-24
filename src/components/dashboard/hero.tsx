@@ -3,23 +3,19 @@
 import { CalendarClock, Globe2, Languages, MapPin, Phone, Ruler, Users, Clock, Coins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { CountryStatic } from '@/lib/types';
-import { CountryGlobe } from './country-globe';
 
 /**
- * Top hero: flag, name, tagline, metadata chips, and a small decorative
- * globe (desktop only) that marks the country's capital location.
+ * Top hero: flag, name, tagline, and a grid of metadata chips.
  *
- * The globe is positioned absolutely on the right; on mobile it's hidden to
- * keep the hero compact and readable. The flag watermark stays as a subtle
- * texture, but the globe is the new "world" centerpiece tying into the
- * neural-noise backdrop.
+ * The faint giant emoji flag stays as a subtle texture watermark behind the
+ * glass card; the animated neural-noise backdrop is the ambient "world" feel
+ * the dashboard sits on.
  */
 export function CountryHero({ country }: { country: CountryStatic }) {
   const languages = country.languages.slice(0, 4);
   const currencies = country.currencies.slice(0, 3);
   const population = country.population ? Number(country.population).toLocaleString('en-US') : null;
   const area = country.area ? Number(country.area).toLocaleString('en-US') : null;
-  const hasCoords = country.latitude != null && country.longitude != null;
 
   return (
     <section className="animate-fade-up relative overflow-hidden rounded-2xl border border-border/50 bg-card/60 p-6 shadow-sm shadow-black/[0.03] backdrop-blur-xl sm:p-8">
@@ -31,8 +27,7 @@ export function CountryHero({ country }: { country: CountryStatic }) {
         {country.flagEmoji ?? '🏳️'}
       </div>
 
-      {/* 2-column layout on desktop: content left, decorative globe right. */}
-      <div className="relative grid gap-6 lg:grid-cols-[1fr_minmax(0,260px)] lg:items-start lg:gap-8">
+      <div className="relative flex flex-col gap-6">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             {country.flagUrl ? (
@@ -72,15 +67,6 @@ export function CountryHero({ country }: { country: CountryStatic }) {
             </div>
           ) : null}
         </div>
-
-        {/* Decorative globe marking the country's location (desktop only). */}
-        {hasCoords ? (
-          <div className="pointer-events-none relative mx-auto hidden aspect-square w-full max-w-[260px] lg:block">
-            <CountryGlobe lat={country.latitude!} lng={country.longitude!} className="!max-w-none" />
-            {/* radial vignette to fade globe edges into the card */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_55%,var(--card)_82%)]" />
-          </div>
-        ) : null}
       </div>
 
       {/* Metadata chips grid */}

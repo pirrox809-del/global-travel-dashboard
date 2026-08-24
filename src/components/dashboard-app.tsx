@@ -8,7 +8,6 @@ import { CountrySelector } from '@/components/country-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
-import { Globe } from '@/components/ui/globe';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -127,67 +126,67 @@ function DashboardAppInner() {
 
 function EmptyState({ onPick }: { onPick: (code: string) => void }) {
   return (
-    <div className="relative mx-auto flex min-h-[calc(100vh-220px)] max-w-4xl flex-col items-center justify-center py-10 text-center">
-      {/* The globe: large, centered, behind the headline. The headline sits
-          above with a soft radial vignette so text stays legible. */}
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="relative mx-auto flex min-h-[calc(100vh-220px)] max-w-2xl flex-col items-center justify-center py-10 text-center"
+    >
+      {/* Iconic centerpiece: a rotating compass medallion over the neural backdrop. */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-        className="pointer-events-none absolute inset-0 mx-auto flex items-start justify-center"
+        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mb-8 grid size-24 place-items-center rounded-3xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-2xl shadow-amber-500/25"
       >
-        <div className="relative aspect-square w-full max-w-[460px] sm:max-w-[520px]">
-          <Globe className="!max-w-none" />
-          {/* radial vignette to fade the globe edges into the background */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_45%,var(--background)_75%)]" />
-        </div>
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+        >
+          <Compass className="size-12" />
+        </motion.div>
+        {/* soft glow */}
+        <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-amber-500/40 to-rose-500/40 blur-2xl" />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 flex flex-col items-center pt-[180px] sm:pt-[220px]"
-      >
-        <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">
-          <Sparkles className="size-3 text-amber-500" />
-          189 countries · one dashboard
-        </Badge>
-        <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
-          Pick a country,
-          <br />
-          <span className="bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
-            see everything.
-          </span>
-        </h2>
-        <p className="mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
-          Live weather, ECB exchange rates, travel advisories, AI-curated culture, food,
-          must-see places and price estimates — aggregated for any of the 189 countries.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {FEATURED.map((f, i) => (
-            <motion.div
-              key={f.code}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 + i * 0.06, ease: 'easeOut' }}
+      <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">
+        <Sparkles className="size-3 text-amber-500" />
+        189 countries · one dashboard
+      </Badge>
+      <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
+        Pick a country,
+        <br />
+        <span className="bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
+          see everything.
+        </span>
+      </h2>
+      <p className="mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
+        Live weather, ECB exchange rates, travel advisories, AI-curated culture, food,
+        must-see places and price estimates — aggregated for any of the 189 countries.
+      </p>
+      <div className="mt-8 flex flex-wrap justify-center gap-2">
+        {FEATURED.map((f, i) => (
+          <motion.div
+            key={f.code}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 + i * 0.06, ease: 'easeOut' }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPick(f.code)}
+              className="gap-1.5 border-border/50 bg-background/50 backdrop-blur-md transition-all hover:border-amber-500/40 hover:bg-background/80"
             >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPick(f.code)}
-                className="gap-1.5 border-border/50 bg-background/50 backdrop-blur-md hover:bg-background/80 hover:border-amber-500/40 transition-all"
-              >
-                <Sparkles className="size-3 text-amber-500" />
-                {f.name}
-              </Button>
-            </motion.div>
-          ))}
-        </div>
-        <p className="mt-8 text-xs text-muted-foreground/80">
-          Or search the dropdown above. First visit to each country generates its travel brief.
-        </p>
-      </motion.div>
-    </div>
+              <Sparkles className="size-3 text-amber-500" />
+              {f.name}
+            </Button>
+          </motion.div>
+        ))}
+      </div>
+      <p className="mt-8 text-xs text-muted-foreground/80">
+        Or search the dropdown above. First visit to each country generates its travel brief.
+      </p>
+    </motion.div>
   );
 }
