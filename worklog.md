@@ -48,3 +48,22 @@ Stage Summary:
 - Country names stay in English (proper nouns, universally recognizable). Region headings localized (Europa, Afrique, África…).
 - Dates/times locale-aware (lun 24, lun. 24, Mon 24).
 - `contentLanguage` tracked per country so we know which language is cached and regenerate only when needed.
+
+---
+Task ID: 3
+Agent: main (Z.ai Code)
+Task: Add an elegant intro/landing home screen as the dashboard's front door.
+
+Work Log:
+- Added ~16 intro i18n strings (badge, title1, title2, subtitle, body, CTA, hint, 4 feature title/desc pairs) to all 4 locales (en/es/it/fr) in src/lib/i18n.ts.
+- Created `src/components/intro-screen.tsx`: full-screen editorial hero with (a) rotating compass medallion with glow, (b) badge, (c) two-line gradient title, (d) poetic subtitle, (e) 4 frosted-glass feature pills (Live Weather / Exchange Rates / Travel Advisories / AI-Curated), (f) prominent gradient CTA "Begin exploration", (g) "No sign-up · No API keys · 100% free" hint. Floating language + theme controls top-right. Staggered cascade entrance via framer-motion (badge → title → subtitle → features → CTA → hint).
+- Updated `src/components/dashboard-app.tsx`: added `entered` state (lazy init from sessionStorage + deep-link detection — no setState-in-effect). Wrapped content in `<AnimatePresence mode="wait">` so intro fades out (0.4s) and dashboard fades in (0.5s) smoothly. NeuralNoise backdrop stays mounted at the root so the shader doesn't restart during the transition.
+- Logic: first visit (no `?c=`, no sessionStorage flag) → intro. Click CTA → sessionStorage set + dashboard revealed. Deep-link `?c=FR` → skip intro entirely. New session → intro shows again.
+- Browser-verified: intro loads with all content (badge, title, subtitle, 4 features, CTA, hint). Click "Begin exploration" → smooth fade to dashboard (header + selector + empty state). Language switch on intro translates instantly (IT: "Dashboard Viaggi Globale", "Inizia a esplorare"). Deep-link `?c=FR` bypasses intro. Mobile 390px + desktop 1440px verified. Zero console errors.
+
+Stage Summary:
+- Elegant editorial intro as the dashboard's front door, matching the amber/rose glass aesthetic.
+- 4-language support on the intro itself (user can localise before entering).
+- sessionStorage-based gate: shows once per session, deep-links bypass.
+- Smooth AnimatePresence transition intro→dashboard, no shader flicker.
+- All animations respect prefers-reduced-motion.

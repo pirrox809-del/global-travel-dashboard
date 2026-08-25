@@ -3,12 +3,13 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Globe2, Compass, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
+import { IntroScreen } from '@/components/intro-screen';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useT } from '@/components/language-provider';
@@ -23,6 +24,10 @@ const FEATURED = [
   { code: 'NO', name: 'Norway' },
 ];
 
+/** sessionStorage key: once the user has entered, skip the intro for the
+ *  rest of the session (but show it again on a fresh session/new tab). */
+const ENTERED_KEY = 'gtd-entered';
+
 export function DashboardApp() {
   return (
     <Suspense fallback={null}>
@@ -34,7 +39,32 @@ export function DashboardApp() {
 function DashboardAppInner() {
   const params = useSearchParams();
   const t = useT();
-  const [selected, setSelected] = useState<string | null>(params.get('c')?.toUpperCase() ?? null);
+  const initialCountry = params.get('c')?.toUpperCase() ?? null;
+  const [selected, setSelected] = useState<string | null>(initialCountry);
+
+  // Intro gate: show the landing screen on the first visit of a session,
+  // UNLESS the URL already carries a country (?c=XX) — deep-links skip the
+  // intro — OR the user has already entered this session (sessionStorage).
+  // We compute the initial value lazily (no setState-in-effect) by reading
+  // sessionStorage during useState initialization.
+  const [entered, setEntered] = useState<boolean>(() => {
+    if (initialCountry) return true; // deep-link → straight to dashboard
+    if (typeof window === 'undefined') return false;
+    try {
+      return sessionStorage.getItem(ENTERED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleEnter = () => {
+    setEntered(true);
+    try {
+      sessionStorage.setItem(ENTERED_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  };
 
   // Keep URL in sync with selection (shareable links).
   useEffect(() => {
@@ -56,10 +86,22 @@ function DashboardAppInner() {
 
   return (
     <div className="relative flex min-h-screen flex-col">
-      {/* Ambient animated backdrop — warm amber neural-noise shader. */}
+      {/* Ambient animated backdrop — warm amber neural-noise shader.
+          Rendered once at the root so it persists across the intro→dashboard
+          transition (no shader restart flicker). */}
       <NeuralNoise color={[0.95, 0.5, 0.18]} opacity={0.55} speed={0.0008} />
 
-      <div className="relative z-10 flex min-h-screen flex-col">
+      <AnimatePresence mode="wait">
+        {!entered ? (
+          <IntroScreen key="intro" onEnter={handleEnter} />
+        ) : (
+          <motion.div
+            key="app"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="relative z-10 flex min-h-screen flex-col"
+          >
         {/* Sticky header — refined glass */}
         <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
@@ -121,7 +163,9 @@ function DashboardAppInner() {
             </div>
           </div>
         </footer>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
