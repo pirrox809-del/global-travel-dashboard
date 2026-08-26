@@ -212,3 +212,108 @@
     }
   }
 }
+
+/* ----------------------------------------------------------------
+   HeroFuturistic — text glitch-in + explore button animations
+   ---------------------------------------------------------------- */
+@layer utilities {
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) skewX(-10deg);
+      filter: blur(8px);
+    }
+    60% {
+      opacity: 1;
+      filter: blur(0);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) skewX(0);
+      filter: blur(0);
+    }
+  }
+  .fade-in {
+    animation: fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes fade-in-subtitle {
+    0% {
+      opacity: 0;
+      transform: translateY(12px);
+      filter: blur(4px);
+    }
+    100% {
+      opacity: 0.85;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+  .fade-in-subtitle {
+    animation: fade-in-subtitle 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Explore button — delayed fade-in + pill shape + glow + hover */
+  @keyframes explore-fade-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 20px);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  .explore-btn {
+    position: fixed;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    opacity: 0;
+    animation: explore-fade-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+    z-index: 70;
+    cursor: pointer;
+  }
+  .explore-btn:hover {
+    border-color: rgba(251, 146, 60, 0.6);
+    background: rgba(251, 146, 60, 0.15);
+    box-shadow: 0 0 30px rgba(251, 146, 60, 0.3);
+  }
+  .explore-btn:hover .explore-arrow {
+    transform: translateY(3px);
+  }
+  .explore-btn:hover .arrow-svg path {
+    stroke: rgb(251, 146, 60);
+  }
+  .arrow-svg path {
+    transition: stroke 0.3s;
+  }
+
+  .explore-arrow {
+    display: inline-flex;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in,
+    .fade-in-subtitle,
+    .explore-btn {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+  }
+}

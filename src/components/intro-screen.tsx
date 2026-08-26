@@ -1,170 +1,46 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ArrowRight, CloudSun, Euro, ShieldCheck, Sparkles, Compass } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { useLanguage } from '@/components/language-provider';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { HeroFuturistic } from '@/components/ui/hero-futuristic';
+import { useLanguage } from '@/components/language-provider';
 
 /**
  * IntroScreen — the landing / hero screen shown on first visit.
  *
- * A full-screen editorial cover: a poetic one-liner, the product promise,
- * four feature pills, and a single call-to-action that reveals the dashboard.
+ * Visual centerpiece: the HeroFuturistic 3D scene — a displacement-mapped
+ * surface with an animated red scan-line + bloom post-processing (WebGPU).
+ * Overlaid: the product title (glitch-in word by word), subtitle, and a
+ * floating "explore" CTA wired to reveal the dashboard.
  *
- * Design notes:
- *  - Reuses the ambient NeuralNoise backdrop (rendered by the parent).
- *  - Frosted-glass feature cards stay consistent with the dashboard aesthetic.
- *  - Entrance uses a staggered cascade (badge → title → subtitle → features → CTA)
- *    so the eye reads top-to-bottom naturally.
- *  - Floating language + theme controls live in the top-right corner so the
- *    user can localise the intro itself before entering.
+ * Fallbacks:
+ *  - If WebGPU is unsupported, the 3D canvas is skipped entirely; the text
+ *    overlay + CTA still render on top of the ambient NeuralNoise backdrop.
+ *  - If the 3D scene throws at runtime (texture failure, TSL error…), an
+ *    error boundary inside HeroFuturistic swallows it and the text remains.
+ *  - Language + theme controls stay top-right regardless.
  */
 export function IntroScreen({ onEnter }: { onEnter: () => void }) {
   const { t } = useLanguage();
-
-  const features = [
-    { icon: <CloudSun className="size-5 text-amber-500" />, title: t('intro.feat.weather.title'), desc: t('intro.feat.weather.desc') },
-    { icon: <Euro className="size-5 text-emerald-600" />, title: t('intro.feat.exchange.title'), desc: t('intro.feat.exchange.desc') },
-    { icon: <ShieldCheck className="size-5 text-rose-500" />, title: t('intro.feat.advisory.title'), desc: t('intro.feat.advisory.desc') },
-    { icon: <Sparkles className="size-5 text-violet-500" />, title: t('intro.feat.curated.title'), desc: t('intro.feat.curated.desc') },
-  ];
+  // Title split into words for the staggered glitch-in animation.
+  // Uses intro.title1 + intro.title2 combined (e.g. "Global Travel Dashboard").
+  const titleWords = `${t('intro.title1')} ${t('intro.title2')}`.split(' ').filter(Boolean);
 
   return (
-    <motion.div
-      key="intro"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.4 } }}
-      className="relative z-10 flex min-h-screen flex-col"
-    >
-      {/* Floating controls top-right */}
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:top-6">
+    <div className="relative h-svh w-full overflow-hidden">
+      {/* 3D hero scene + text overlay + CTA (all inside HeroFuturistic) */}
+      <HeroFuturistic
+        titleWords={titleWords}
+        subtitle={t('intro.subtitle')}
+        ctaLabel={t('intro.cta')}
+        onEnter={onEnter}
+      />
+
+      {/* Floating controls top-right (language + theme) */}
+      <div className="absolute right-4 top-4 z-[80] flex items-center gap-2 sm:right-6 sm:top-6">
         <LanguageSwitcher />
         <ThemeToggle />
       </div>
-
-      {/* Centered hero content */}
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
-        {/* Rotating compass medallion */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mb-8 grid size-20 place-items-center rounded-3xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-2xl shadow-amber-500/30"
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-          >
-            <Compass className="size-10" />
-          </motion.div>
-          <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-amber-500/40 to-rose-500/40 blur-2xl" />
-        </motion.div>
-
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-        >
-          <Badge variant="outline" className="mb-6 gap-1.5 bg-background/60 px-3 py-1 text-xs backdrop-blur-md">
-            <Sparkles className="size-3 text-amber-500" />
-            {t('intro.badge')}
-          </Badge>
-        </motion.div>
-
-        {/* Title — two-line gradient */}
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="text-balance text-5xl font-bold tracking-tighter sm:text-7xl lg:text-8xl"
-        >
-          <span className="block">{t('intro.title1')}</span>
-          <span className="block bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
-            {t('intro.title2')}
-          </span>
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-6 max-w-xl text-balance text-lg font-light text-foreground/80 sm:text-xl"
-        >
-          {t('intro.subtitle')}
-        </motion.p>
-
-        {/* Body */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-3 max-w-lg text-sm text-muted-foreground sm:text-base"
-        >
-          {t('intro.body')}
-        </motion.p>
-
-        {/* Feature pills — 2x2 grid on mobile, 4-col on desktop */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-10 grid w-full max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4"
-        >
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.7 + i * 0.08, ease: 'easeOut' }}
-            >
-              <Card className="h-full border-border/40 bg-card/50 backdrop-blur-md">
-                <CardContent className="flex flex-col items-center gap-2 px-3 py-4 text-center">
-                  <div className="grid size-10 place-items-center rounded-xl bg-background/60 ring-1 ring-border/40">
-                    {f.icon}
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-semibold leading-tight">{f.title}</p>
-                    <p className="text-[10px] leading-tight text-muted-foreground">{f.desc}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 1.05, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-12"
-        >
-          <Button
-            size="lg"
-            onClick={onEnter}
-            className="group h-12 gap-2 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-8 text-base font-medium text-white shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl hover:shadow-amber-500/35"
-          >
-            {t('intro.cta')}
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-          </Button>
-        </motion.div>
-
-        {/* Hint */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.7, delay: 1.2 }}
-          className="mt-6 text-[11px] text-muted-foreground/70"
-        >
-          {t('intro.hint')}
-        </motion.p>
-      </div>
-    </motion.div>
+    </div>
   );
 }

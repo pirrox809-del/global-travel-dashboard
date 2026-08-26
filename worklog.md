@@ -67,3 +67,27 @@ Stage Summary:
 - sessionStorage-based gate: shows once per session, deep-links bypass.
 - Smooth AnimatePresence transition intro→dashboard, no shader flicker.
 - All animations respect prefers-reduced-motion.
+
+---
+Task ID: 4
+Agent: main (Z.ai Code)
+Task: Integrate HeroFuturistic 3D WebGPU animation as the intro's visual centerpiece.
+
+Work Log:
+- Installed three@0.185, @react-three/fiber@9, @react-three/drei@10. Verified both external textures (postimg.cc color + depth maps) are reachable (HTTP 200).
+- Created `src/components/ui/hero-futuristic.tsx` — adapted the provided component:
+  - Props: `titleWords`, `subtitle`, `ctaLabel`, `onEnter` (replaces hardcoded "Build Your Dreams" text).
+  - Kept the full 3D pipeline: WebGPU renderer + TSL displacement-mapped plane + dot-grid mask + red scan-line post-processing + bloom.
+  - Graceful fallback: `CanvasBoundary` error boundary + `hasWebGPU()` check → if WebGPU unsupported or canvas throws, the 3D layer is silently dropped and the text overlay + CTA still render on the NeuralNoise backdrop.
+  - Fixed React 19 lint compliance: TSL uniforms moved to MODULE SCOPE (avoids react-hooks/immutability + react-hooks/refs rules that flag mutating `.value` on hook-derived values); `visible` derived from `useTexture` suspension (no useState/effect); `webgpuOk` + `delays` via lazy useState (no setState-in-effect); deprecated `PostProcessing`→`RenderPipeline` and `renderAsync()`→`render()` with runtime fallback.
+- Added CSS animations to globals.css: `.fade-in` (glitch-in: translateY + skewX + blur), `.fade-in-subtitle` (soft fade-up), `.explore-btn` (fixed pill button with delayed fade-in, amber glow on hover, arrow bounce), all respecting `prefers-reduced-motion`.
+- Rewrote `src/components/intro-screen.tsx` to use `HeroFuturistic` as the full-screen visual layer, with language/theme toggles floating top-right (z-80). Title = `intro.title1 + intro.title2` split into words for the staggered glitch animation.
+- Browser-verified: intro loads with 3D canvas (WebGL2 fallback in headless Chromium — WebGPU detected but falls back gracefully), text animates word-by-word ("GLOBAL TRAVEL DASHBOARD" → "EVERY COUNTRY ON EARTH, IN A SINGLE GLANCE."), "Begin exploration" CTA fades in at 2.2s. Click CTA → smooth fade transition to dashboard. Italian switch works ("DASHBOARD VIAGGI GLOBALE", "Inizia a esplorare"). Mobile 390px verified. Zero real errors (only three.js deprecation warnings from Clock/PostProcessing internals).
+
+Stage Summary:
+- Sci-fi 3D hero with displacement-mapped surface + animated red scan-line + bloom as the intro's visual centerpiece.
+- Staggered glitch-in text animation (per-word fade + skew + blur).
+- "Begin exploration" CTA pill with amber glow hover, wired to reveal dashboard.
+- Full graceful degradation: WebGPU unsupported → WebGL2 fallback → error boundary → text-only on NeuralNoise. Text + CTA always functional.
+- 4-language support on the intro text (title, subtitle, CTA all localized).
+- All animations respect prefers-reduced-motion.
