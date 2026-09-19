@@ -230,7 +230,15 @@ export async function aggregateCountry(
           date: exchangeRes.value.date,
         }
       : {
-          error: exchangeRes.status === 'rejected' ? String(exchangeRes.reason?.message ?? exchangeRes.reason) : 'No currency',
+          // If we have a currency code but convertCurrency returned null,
+          // the currency simply isn't on the ECB reference list (e.g. EGP, VND).
+          // If we don't have a currency code at all, it's a missing-data issue.
+          error:
+            exchangeRes.status === 'rejected'
+              ? String(exchangeRes.reason?.message ?? exchangeRes.reason)
+              : primaryCurrency
+                ? 'not on ECB list'
+                : 'No currency code',
           currency: primaryCurrency,
         };
 
