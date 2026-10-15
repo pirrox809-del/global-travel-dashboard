@@ -6,18 +6,8 @@ import { useEffect, useRef } from 'react';
  * NeuralNoise — WebGL shader background.
  *
  * Renders a fixed, full-viewport canvas painting an animated "neural" noise
- * pattern that reacts to the pointer. The shader is a layered rotating-sine
- * field; pointer proximity intensifies the local pattern.
- *
- * Props:
- *  - color   : RGB 0-1 triplet for the noise tint. Default rose.
- *  - opacity : canvas opacity (also creates a stacking context so the canvas
- *              can be layered with `z-index` when needed). Default 0.95.
- *  - speed   : rotation/evolution speed. Default 0.001 (slow drift).
- *
- * Source: magicui-style component. Used here as the ambient animated
- * backdrop for the Global Travel Dashboard — kept very subtle via opacity
- * and a warm amber tint to read as a "sunset aurora" behind frosted glass.
+ * pattern that reacts to the pointer. Used as the ambient animated backdrop
+ * for the Global Travel Dashboard — subtle via opacity + warm amber tint.
  */
 export function NeuralNoise({
   color = [0.9, 0.2, 0.4],
@@ -30,27 +20,11 @@ export function NeuralNoise({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const pointer = useRef({ x: 0, y: 0, tX: 0, tY: 0 });
-  let gl: WebGLRenderingContext | null;
-  let uniforms: Record<string, WebGLUniformLocation | null>;
+  const glRef = useRef<WebGLRenderingContext | null>(null);
+  const uniformsRef = useRef<Record<string, WebGLUniformLocation | null>>({});
 
-  useEffect(() => {
-    const devicePixelRatio = Math.min(window.devicePixelRatio, 2);
-    gl = initShader();
-    if (!gl) return;
-    const cleanupEvents = setupEvents();
-    resizeCanvas();
-    const resizeListener = () => resizeCanvas();
-    window.addEventListener('resize', resizeListener);
-    gl.uniform3f(uniforms.u_color, color[0], color[1], color[2]);
-    gl.uniform1f(uniforms.u_speed, speed);
-    render();
-    return () => {
-      window.removeEventListener('resize', resizeListener);
-      cleanupEvents();
-    };
-  }, [color, speed]);
-
-  function initShader() {
+  // --- Helper functions (declared before useEffect to avoid forward-ref lint) ---
+  const initShader = (): WebGLRenderingContext | null => {
     const vsSource = `
       precision mediump float;
       varying vec2 vUv;
@@ -104,28 +78,30 @@ export function NeuralNoise({
       }
     `;
     const canvasEl = canvasRef.current;
-    gl = canvasEl.getContext('webgl') || canvasEl.getContext('experimental-webgl');
-    if (!gl) {
+    if (!canvasEl) return null;
+    const ctx = canvasEl.getContext('webgl') || canvasEl.getContext('experimental-webgl');
+    if (!ctx) {
       console.error('WebGL not supported');
       return null;
     }
-    const vertexShader = createShader(gl, vsSource, gl.VERTEX_SHADER);
-    const fragmentShader = createShader(gl, fsSource, gl.FRAGMENT_SHADER);
-    const shaderProgram = createProgram(gl, vertexShader!, fragmentShader!);
+    glRef.current = ctx;
+    const vertexShader = createShader(ctx, vsSource, ctx.VERTEX_SHADER);
+    const fragmentShader = createShader(ctx, fsSource, ctx.FRAGMENT_SHADER);
+    const shaderProgram = createProgram(ctx, vertexShader!, fragmentShader!);
     if (!shaderProgram) return null;
-    uniforms = getUniforms(gl, shaderProgram);
+    uniformsRef.current = getUniforms(ctx, shaderProgram);
     const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-    gl.useProgram(shaderProgram);
-    const positionLocation = gl.getAttribLocation(shaderProgram, 'a_position');
-    gl.enableVertexAttribArray(positionLocation);
-    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-    return gl;
+    const vertexBuffer = ctx.createBuffer();
+    ctx.bindBuffer(ctx.ARRAY_BUFFER, vertexBuffer);
+    ctx.bufferData(ctx.ARRAY_BUFFER, vertices, ctx.STATIC_DRAW);
+    ctx.useProgram(shaderProgram);
+    const positionLocation = ctx.getAttribLocation(shaderProgram, 'a_position');
+    ctx.enableVertexAttribArray(positionLocation);
+    ctx.vertexAttribPointer(positionLocation, 2, ctx.FLOAT, false, 0, 0);
+    return ctx;
   }
 
-  function createShader(gl: WebGLRenderingContext, source: string, type: number) {
+  const createShader = (gl: WebGLRenderingContext, source: string, type: number) => {
     const shader = gl.createShader(type);
     if (!shader) return null;
     gl.shaderSource(shader, source);
@@ -138,7 +114,7 @@ export function NeuralNoise({
     return shader;
   }
 
-  function createProgram(gl: WebGLRenderingContext, vs: WebGLShader, fs: WebGLShader) {
+  const createProgram = (gl: WebGLRenderingContext, vs: WebGLShader, fs: WebGLShader) => {
     const program = gl.createProgram();
     if (!program) return null;
     gl.attachShader(program, vs);
@@ -151,7 +127,7 @@ export function NeuralNoise({
     return program;
   }
 
-  function getUniforms(gl: WebGLRenderingContext, program: WebGLProgram) {
+  const getUniforms = (gl: WebGLRenderingContext, program: WebGLProgram) => {
     const uniforms: Record<string, WebGLUniformLocation | null> = {};
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < uniformCount; i++) {
@@ -161,33 +137,36 @@ export function NeuralNoise({
     return uniforms;
   }
 
-  function render() {
+  const render = () => {
+    const gl = glRef.current;
+    if (!gl) return;
     const currentTime = performance.now();
     pointer.current.x += (pointer.current.tX - pointer.current.x) * 0.2;
     pointer.current.y += (pointer.current.tY - pointer.current.y) * 0.2;
-    gl!.uniform1f(uniforms.u_time, currentTime);
-    gl!.uniform2f(
-      uniforms.u_pointer_position,
+    gl.uniform1f(uniformsRef.current.u_time!, currentTime);
+    gl.uniform2f(
+      uniformsRef.current.u_pointer_position!,
       pointer.current.x / window.innerWidth,
       1 - pointer.current.y / window.innerHeight,
     );
-    gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     requestAnimationFrame(render);
   }
 
-  function resizeCanvas() {
+  const resizeCanvas = () => {
     const canvasEl = canvasRef.current;
+    const gl = glRef.current;
     if (!canvasEl || !gl) return;
     const devicePixelRatio = Math.min(window.devicePixelRatio, 2);
     canvasEl.width = window.innerWidth * devicePixelRatio;
     canvasEl.height = window.innerHeight * devicePixelRatio;
-    if (uniforms && uniforms.u_ratio) {
-      gl.uniform1f(uniforms.u_ratio, canvasEl.width / canvasEl.height);
+    if (uniformsRef.current.u_ratio) {
+      gl.uniform1f(uniformsRef.current.u_ratio!, canvasEl.width / canvasEl.height);
     }
     gl.viewport(0, 0, canvasEl.width, canvasEl.height);
   }
 
-  function setupEvents() {
+  const setupEvents = () => {
     const updateMousePosition = (x: number, y: number) => {
       pointer.current.tX = x;
       pointer.current.tY = y;
@@ -206,6 +185,22 @@ export function NeuralNoise({
       window.removeEventListener('click', click);
     };
   }
+
+  useEffect(() => {
+    const gl = initShader();
+    if (!gl) return;
+    const cleanupEvents = setupEvents();
+    resizeCanvas();
+    const resizeListener = () => resizeCanvas();
+    window.addEventListener('resize', resizeListener);
+    gl.uniform3f(uniformsRef.current.u_color!, color[0], color[1], color[2]);
+    gl.uniform1f(uniformsRef.current.u_speed!, speed);
+    render();
+    return () => {
+      window.removeEventListener('resize', resizeListener);
+      cleanupEvents();
+    };
+  }, [color, speed]);
 
   return (
     <canvas

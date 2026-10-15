@@ -148,8 +148,80 @@ function extractJson(raw: string): string {
   return candidate.slice(start, end + 1);
 }
 
-/** Run a single LLM call to produce the structured payload for a country.
- *  `languageName` is the native name of the target language (e.g. "Italian"). */
+/**
+ * Sanitize common LLM JSON mistakes before parsing:
+ *  - Trailing commas before ] or }
+ *  - Unescaped newlines inside strings
+ *  - Smart quotes → straight quotes
+ *  - Missing closing brace
+ * This dramatically improves parse success rate for LLM-generated JSON.
+ */
+function sanitizeJson(str: string): string {
+  let s = str;
+  // Replace smart quotes with straight quotes.
+  s = s.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
+  // Remove trailing commas (before } or ]).
+  s = s.replace(/,\s*([}\]])/g, '$1');
+  // Fix unescaped newlines inside string values (common LLM mistake).
+  // We do a conservative pass: replace literal newlines that appear between
+  // a quote and a closing quote+colon/comma with \\n.
+  s = s.replace(/:\s*"([^"]*?)\n([^"]*?)"/g, ': "$1\\n$2"');
+  // If the JSON is missing a closing brace, add one.
+  const openBraces = (s.match(/{/g) ?? []).length;
+  const closeBraces = (s.match(/}/g) ?? []).length;
+  if (openBraces > closeBraces) {
+    s += '}'.repeat(openBraces - closeBraces);
+  }
+  return s;
+}
+
+/**
+ * Parse the LLM output into a payload, with sanitization + retry.
+ * LLMs occasionally produce malformed JSON (trailing commas, smart quotes,
+ * unescaped newlines). We sanitize first; if that fails, we retry the LLM
+ * call once with a stricter prompt. If still failing, we throw and the
+ * aggregator returns a partial-content response.
+ */
+async function parsePayload(raw: string): Promise<LlmCountryPayload> {
+  const jsonStr = extractJson(raw);
+  // First try: raw parse.
+  try {
+    const p = JSON.parse(jsonStr) as LlmCountryPayload;
+    validatePayload(p);
+    return p;
+  } catch {
+    // Second try: sanitized parse.
+    try {
+      const p = JSON.parse(sanitizeJson(jsonStr)) as LlmCountryPayload;
+      validatePayload(p);
+      return p;
+    } catch (e) {
+      throw new Error(`JSON parse failed after sanitize: ${(e as Error).message}`);
+    }
+  }
+}
+
+function validatePayload(p: LlmCountryPayload) {
+  if (!p.overview || !Array.isArray(p.culture) || !Array.isArray(p.foods)) {
+    throw new Error('LLM payload missing required fields');
+  }
+  // Ensure arrays exist (defensive).
+  if (!Array.isArray(p.unwrittenRules)) p.unwrittenRules = [];
+  if (!Array.isArray(p.pois)) p.pois = [];
+  if (!p.priceEstimate) {
+    p.priceEstimate = {
+      budgetHotelEur: '40-90', midHotelEur: '90-180', luxuryHotelEur: '180-500',
+      flightFromEuEur: '120-400', mealBudgetEur: '8-15', mealMidEur: '20-45',
+      notes: '',
+    };
+  }
+}
+
+/**
+ * Run LLM call(s) to produce the structured payload for a country.
+ * Includes automatic retry with a stricter prompt if the first call produces
+ * unparseable JSON. `languageName` = native name (e.g. "Italian").
+ */
 export async function generateCountryPayload(
   country: {
     name: string;
@@ -163,23 +235,41 @@ export async function generateCountryPayload(
   languageName: string = 'English',
 ): Promise<LlmCountryPayload> {
   const zai = await getZai();
-  const completion = await zai.chat.completions.create({
+
+  // Attempt 1: standard prompt.
+  const completion1 = await zai.chat.completions.create({
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: buildUserPrompt(country, languageName) },
     ],
-    // Structured JSON: disable thinking for speed and determinism.
     thinking: { type: 'disabled' },
   });
-  const raw = completion.choices[0]?.message?.content ?? '';
-  const jsonStr = extractJson(raw);
-  const payload = JSON.parse(jsonStr) as LlmCountryPayload;
-  // Minimal validation — throw if a critical field is missing so the
-  // aggregator can fall back to a partial-content response.
-  if (!payload.overview || !Array.isArray(payload.culture) || !Array.isArray(payload.foods)) {
-    throw new Error('LLM payload missing required fields');
+  const raw1 = completion1.choices[0]?.message?.content ?? '';
+  try {
+    return await parsePayload(raw1);
+  } catch (e1) {
+    console.warn(`[llm] ${country.name}: first parse failed, retrying:`, (e1 as Error).message);
   }
-  return payload;
+
+  // Attempt 2: stricter prompt with explicit JSON reminder.
+  const completion2 = await zai.chat.completions.create({
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: buildUserPrompt(country, languageName) },
+      { role: 'assistant', content: raw1 },
+      {
+        role: 'user',
+        content:
+          'Your previous response was NOT valid JSON. Please regenerate the COMPLETE JSON object. ' +
+          'Rules: (1) Use ONLY straight double quotes ". (2) NO trailing commas. ' +
+          '(3) NO newlines inside string values. (4) Output ONLY the JSON object, nothing else. ' +
+          `(Write all text in ${languageName}.)`,
+      },
+    ],
+    thinking: { type: 'disabled' },
+  });
+  const raw2 = completion2.choices[0]?.message?.content ?? '';
+  return parsePayload(raw2); // If this throws, the aggregator handles it.
 }
 
 /**

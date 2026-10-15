@@ -1,54 +1,69 @@
 /**
- * frankfurter.ts — Exchange rates via the Frankfurter API (https://frankfurter.app).
+ * frankfurter.ts → ora usa open.er-api.com come fonte primaria.
  *
- * Why this API:
- *  - 100% free, no API key, no rate limits of practical concern for our scale.
- *  - Reference rates published daily by the European Central Bank (ECB).
+ * Perché il cambio:
+ *  - Frankfurter/BCE copre solo ~30 valute principali (no EGP, VND, PEN, BDT, ARS...).
+ *  - open.er-api.com copre 166 valute (TUTTE le valute del mondo), gratis, no API key.
+ *  - Aggiornato quotidianamente, basato su dati reali di mercato.
+ *  - Cache 6h (come prima).
  *
- * We resolve the country's currency code (from our DB) and convert 1 EUR
- * (or 1 USD) into that currency. Cached 6 hours — ECB publishes once per
- * business day around 16:00 CET, but we cache conservatively.
+ * Frankfurter resta come fallback se open.er-api.com è down.
  */
 import { cache, TTL } from '@/lib/cache';
 
-const BASE = 'https://api.frankfurter.dev/v1';
+const PRIMARY = 'https://open.er-api.com/v6/latest/EUR';
+const FALLBACK = 'https://api.frankfurter.dev/v1/latest?from=EUR';
 
 export type ExchangeResult = {
-  base: string; // e.g. "EUR"
-  date: string; // YYYY-MM-DD of the rate
-  rates: Record<string, number>; // currency -> amount for 1 base
+  base: string;
+  date: string;
+  rates: Record<string, number>;
 };
 
-/** Fetch live ECB rates with EUR as base. Cached 6h. */
+/** Fetch live EUR-base rates. open.er-api.com first (166 currencies), Frankfurter fallback. */
 export async function getEcbRates(): Promise<ExchangeResult> {
-  return cache.wrap('fx:ecb:latest', TTL.exchangeRate, async () => {
-    const res = await fetch(`${BASE}/latest?from=EUR`, { next: { revalidate: TTL.exchangeRate } });
-    if (!res.ok) throw new Error(`Frankfurter latest ${res.status}`);
-    return (await res.json()) as ExchangeResult;
+  return cache.wrap('fx:er-api:latest', TTL.exchangeRate, async () => {
+    try {
+      const res = await fetch(PRIMARY, { next: { revalidate: TTL.exchangeRate } });
+      if (!res.ok) throw new Error(`er-api ${res.status}`);
+      const j = await res.json();
+      if (!j.rates) throw new Error('er-api: no rates');
+      return {
+        base: 'EUR',
+        date: j.date ?? new Date().toISOString().slice(0, 10),
+        rates: j.rates as Record<string, number>,
+      };
+    } catch (err) {
+      // Fallback: Frankfurter/ECB (~30 currencies only, but better than nothing).
+      console.warn('[fx] er-api failed, trying Frankfurter:', (err as Error).message);
+      const res = await fetch(FALLBACK, { next: { revalidate: TTL.exchangeRate } });
+      if (!res.ok) throw new Error(`Frankfurter ${res.status}`);
+      return (await res.json()) as ExchangeResult;
+    }
   });
 }
 
 /**
- * Convert a single currency into EUR/USD/GBP. Returns null if the currency
- * isn't traded on ECB (rare — e.g. some territories with no independent currency).
+ * Convert a single currency into EUR/USD/GBP. Returns null only if the
+ * currency truly doesn't exist in any rate source (extremely rare with
+ * 166 currencies covered).
  */
 export async function convertCurrency(
   targetCurrency: string,
 ): Promise<{ perEur: number; perUsd: number; perGbp: number; date: string } | null> {
   const target = targetCurrency.toUpperCase();
   const ecb = await getEcbRates();
+  const usdRate = ecb.rates['USD'] ?? 1;
+  const gbpRate = ecb.rates['GBP'] ?? 1;
+
   if (target === 'EUR') {
-    const usdRate = ecb.rates['USD'] ?? 1;
-    const gbpRate = ecb.rates['GBP'] ?? 1;
     return { perEur: 1, perUsd: 1 / usdRate, perGbp: 1 / gbpRate, date: ecb.date };
   }
   const rate = ecb.rates[target];
   if (!rate) return null;
-  const usdRate = ecb.rates['USD'] ?? 1;
-  const gbpRate = ecb.rates['GBP'] ?? 1;
   return {
     perEur: rate,
-    perUsd: rate / usdRate, // cross-rate via EUR
+    perUsd: rate / usdRate,
     perGbp: rate / gbpRate,
     date: ecb.date,
   };
