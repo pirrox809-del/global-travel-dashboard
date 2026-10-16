@@ -44,7 +44,13 @@ export type CountryStatic = {
     overview: string;
     culture: string; // markdown bullets
     unwrittenRules: string; // markdown bullets
-    safetyBrief: string | null; // LLM-generated, used as advisory fallback
+    safetyBrief: string | null;
+    emergencyNumbers: { police: string; ambulance: string; fire: string; general?: string } | null;
+    crimeBrief: string | null;
+    dangerousAnimals: { name: string; description: string }[] | null;
+    qualityOfLife: string | null;
+    taxes: { vatRate: string; corporateTax: string; incomeTax: string; notes: string } | null;
+    clothingAdvice: string | null;
     tagline: string | null;
     bestTimeToVisit: string | null;
   } | null;
@@ -99,6 +105,15 @@ export type CountryDynamic = {
     | { source: 'ai-brief'; brief: string }
     | { source: 'error'; error: string };
   photos: { image: string; title: string; caption?: string }[] | { error: string };
+  economy:
+    | {
+        gdpUsd: number | null;
+        gdpPerCapitaUsd: number | null;
+        gdpYear: number | null;
+        inflationRate: number | null;
+        unemploymentRate: number | null;
+      }
+    | { error: string };
 };
 
 /** Full aggregated payload returned by GET /api/countries/[code]. */

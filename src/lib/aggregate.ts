@@ -28,6 +28,7 @@ import { convertCurrency } from '@/lib/external/frankfurter';
 import { getAdvisory } from '@/lib/external/travel-advisory';
 import { generateCountryPayload, persistCountryPayload } from '@/lib/external/llm-content';
 import { getCountryPhotos } from '@/lib/external/wikipedia-images';
+import { getEconomyData } from '@/lib/external/worldbank';
 import { LOCALE_NATIVE, DEFAULT_LOCALE, type Locale } from '@/lib/i18n';
 import type { AggregatedCountry, CountryStatic, CountryDynamic } from '@/lib/types';
 
@@ -60,6 +61,16 @@ function parseStringArray(json: string | null): string[] {
     return Array.isArray(arr) ? (arr as string[]) : [];
   } catch {
     return [];
+  }
+}
+
+/** Parse a JSON column field, return null on failure. */
+function safeParseJson(json: string | null): unknown {
+  if (!json) return null;
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
   }
 }
 
@@ -136,6 +147,12 @@ function toDto(c: NonNullable<Awaited<ReturnType<typeof db.country.findUnique<{ 
           culture: c.content.culture,
           unwrittenRules: c.content.unwrittenRules,
           safetyBrief: c.content.safetyBrief,
+          emergencyNumbers: safeParseJson(c.content.emergencyNumbersJson) as { police: string; ambulance: string; fire: string; general?: string } | null,
+          crimeBrief: c.content.crimeBrief,
+          dangerousAnimals: safeParseJson(c.content.dangerousAnimalsJson) as { name: string; description: string }[] | null,
+          qualityOfLife: c.content.qualityOfLife,
+          taxes: safeParseJson(c.content.taxesJson) as { vatRate: string; corporateTax: string; incomeTax: string; notes: string } | null,
+          clothingAdvice: c.content.clothingAdvice,
           tagline: c.content.tagline,
           bestTimeToVisit: c.content.bestTimeToVisit,
         }
@@ -195,7 +212,7 @@ export async function aggregateCountry(
 
   // 3. PARALLEL FETCH of all dynamic sources.
   //    Use Promise.allSettled so a single failure doesn't poison the rest.
-  const [weatherRes, exchangeRes, advisoryRes, photosRes] = await Promise.allSettled([
+  const [weatherRes, exchangeRes, advisoryRes, photosRes, economyRes] = await Promise.allSettled([
     staticData.latitude != null && staticData.longitude != null
       ? getWeather(staticData.latitude, staticData.longitude)
       : Promise.reject(new Error('No coordinates for country')),
@@ -203,6 +220,8 @@ export async function aggregateCountry(
     getAdvisory(upper),
     // Real photos: country + capital + POIs from Wikipedia (cached 7 days).
     getCountryPhotos(staticData.name, staticData.capital, staticData.pois),
+    // Real GDP from World Bank (official data, cached 7 days).
+    getEconomyData(staticData.code3),
   ]);
 
   // 4. Normalise each result into a success-or-error shape.
@@ -269,10 +288,21 @@ export async function aggregateCountry(
       ? photosRes.value
       : { error: photosRes.status === 'rejected' ? String(photosRes.reason?.message ?? photosRes.reason) : 'No photos found' };
 
+  const economy: CountryDynamic['economy'] =
+    economyRes.status === 'fulfilled' && economyRes.value
+      ? {
+          gdpUsd: economyRes.value.gdpUsd,
+          gdpPerCapitaUsd: economyRes.value.gdpPerCapitaUsd,
+          gdpYear: economyRes.value.gdpYear,
+          inflationRate: economyRes.value.inflationRate,
+          unemploymentRate: economyRes.value.unemploymentRate,
+        }
+      : { error: economyRes.status === 'rejected' ? String(economyRes.reason?.message ?? economyRes.reason) : 'No economic data' };
+
   // 5. Assemble final payload.
   return {
     country: staticData,
-    dynamic: { weather, exchange, advisory, photos },
+    dynamic: { weather, exchange, advisory, photos, economy },
     meta: {
       generatedAt: new Date().toISOString(),
       cache: cache.stats(),

@@ -94,8 +94,19 @@ model CountryContent {
   /// US State Dept advisory API is unreachable). Plain text paragraph.
   safetyBrief     String?
   /// ISO 639-1 language code the content was generated in (en/es/it/fr).
-  /// When a user requests a different language, the content is regenerated.
   contentLanguage String? @default("en")
+  /// JSON: emergency numbers {police, ambulance, fire, general}.
+  emergencyNumbersJson String?
+  /// Paragraph on crime risks, scams, areas to avoid.
+  crimeBrief      String?
+  /// JSON array of dangerous animals [{name, description}].
+  dangerousAnimalsJson String?
+  /// Paragraph on quality of life (healthcare, safety, cost of living).
+  qualityOfLife   String?
+  /// JSON: tax summary {vatRate, corporateTax, incomeTax, notes}.
+  taxesJson       String?
+  /// Paragraph on recommended clothing by season.
+  clothingAdvice  String?
   /// Short tagline, e.g. "The Hexagon of gastronomy and art de vivre".
   tagline         String?
   /// Best months to visit, e.g. "Apr–Jun, Sep–Oct".

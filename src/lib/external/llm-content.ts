@@ -45,6 +45,18 @@ export type LlmCountryPayload = {
   /// General safety brief paragraph. Used as a fallback when the live US State
   /// Dept advisory API is unreachable. Clearly labelled "AI safety brief" in UI.
   safetyBrief: string;
+  /// Emergency numbers — well-known public numbers (112 EU, 911 US, etc.).
+  emergencyNumbers: { police: string; ambulance: string; fire: string; general?: string };
+  /// Crime risks, scams to watch for, areas to avoid. ~80 words.
+  crimeBrief: string;
+  /// Dangerous animals endemic to the country.
+  dangerousAnimals: { name: string; description: string }[];
+  /// Quality of life summary: healthcare, education, safety, cost of living. ~80 words.
+  qualityOfLife: string;
+  /// Tax summary: VAT rate, corporate tax rate, income tax bracket, notes.
+  taxes: { vatRate: string; corporateTax: string; incomeTax: string; notes: string };
+  /// Clothing advice by season. ~60 words.
+  clothingAdvice: string;
   foods: { name: string; description: string; category: 'main' | 'dessert' | 'street' | 'drink' }[];
   pois: {
     name: string;
@@ -100,6 +112,24 @@ Return STRICT JSON with EXACTLY this shape and field names:
   "culture": ["bullet", "bullet", ...]  // 5-7 bullets on language, religion, social customs, arts
   "unwrittenRules": ["bullet", ...]  // 5-7 bullets on etiquette / taboos / what surprises foreigners
   "safetyBrief": "a single paragraph, 60-100 words, on general safety for travelers: typical crime risks, areas to avoid, health/sanitation notes, and a sober overall risk assessment. Be factual and balanced, not alarmist.",
+  "emergencyNumbers": {
+    "police": "e.g. '112' or '17'",
+    "ambulance": "e.g. '112' or '15'",
+    "fire": "e.g. '112' or '18'",
+    "general": "the universal emergency number if one exists, else null"
+  },
+  "crimeBrief": "a single paragraph, 60-90 words, on crime risks for travelers: common scams, pickpocketing hotspots, areas to avoid especially at night, and a practical safety tip. Be factual.",
+  "dangerousAnimals": [
+    { "name": "...", "description": "<= 20 words: where found, what risk it poses" }
+  ]  // 2-4 dangerous animals endemic to this country (snakes, spiders, sharks, large mammals, insects). Empty array if the country has none of note.
+  "qualityOfLife": "a single paragraph, 60-90 words, on quality of life: healthcare quality and access, education, general safety, income inequality, and work-life balance. Be factual.",
+  "taxes": {
+    "vatRate": "e.g. '20%' (standard VAT/sales tax rate)",
+    "corporateTax": "e.g. '25%' (standard corporate income tax rate)",
+    "incomeTax": "e.g. '0-45% progressive' (top marginal personal income tax rate)",
+    "notes": "one sentence on notable tax features (e.g. tax havens, special zones, high/low burden)"
+  },
+  "clothingAdvice": "a single paragraph, 50-80 words, on recommended clothing by season: what to pack for summer vs winter, any cultural dress considerations (e.g. modest attire for religious sites), and climate-specific gear (rain, sun, cold).",
   "foods": [
     { "name": "...", "description": "<= 25 words", "category": "main|dessert|street|drink" }
   ]  // 4-6 signature dishes
@@ -208,12 +238,23 @@ function validatePayload(p: LlmCountryPayload) {
   // Ensure arrays exist (defensive).
   if (!Array.isArray(p.unwrittenRules)) p.unwrittenRules = [];
   if (!Array.isArray(p.pois)) p.pois = [];
+  if (!Array.isArray(p.dangerousAnimals)) p.dangerousAnimals = [];
   if (!p.priceEstimate) {
     p.priceEstimate = {
       budgetHotelEur: '40-90', midHotelEur: '90-180', luxuryHotelEur: '180-500',
       flightFromEuEur: '120-400', mealBudgetEur: '8-15', mealMidEur: '20-45',
       notes: '',
     };
+  }
+  // Defensive defaults for the new optional fields.
+  if (!p.emergencyNumbers) {
+    p.emergencyNumbers = { police: '112', ambulance: '112', fire: '112' };
+  }
+  if (!p.crimeBrief) p.crimeBrief = '';
+  if (!p.qualityOfLife) p.qualityOfLife = '';
+  if (!p.clothingAdvice) p.clothingAdvice = '';
+  if (!p.taxes) {
+    p.taxes = { vatRate: '', corporateTax: '', incomeTax: '', notes: '' };
   }
 }
 
@@ -287,6 +328,11 @@ export async function persistCountryPayload(
   await db.food.deleteMany({ where: { countryCode } });
   await db.pointOfInterest.deleteMany({ where: { countryCode } });
 
+  // Serialize the new JSON fields.
+  const emergencyJson = p.emergencyNumbers ? JSON.stringify(p.emergencyNumbers) : null;
+  const animalsJson = p.dangerousAnimals?.length ? JSON.stringify(p.dangerousAnimals) : null;
+  const taxesJson = p.taxes ? JSON.stringify(p.taxes) : null;
+
   await db.countryContent.upsert({
     where: { countryCode },
     update: {
@@ -295,6 +341,12 @@ export async function persistCountryPayload(
       unwrittenRules: p.unwrittenRules.map((s) => `- ${s}`).join('\n'),
       safetyBrief: p.safetyBrief ?? null,
       contentLanguage: language,
+      emergencyNumbersJson: emergencyJson,
+      crimeBrief: p.crimeBrief ?? null,
+      dangerousAnimalsJson: animalsJson,
+      qualityOfLife: p.qualityOfLife ?? null,
+      taxesJson,
+      clothingAdvice: p.clothingAdvice ?? null,
       tagline: p.tagline,
       bestTimeToVisit: p.bestTimeToVisit,
     },
@@ -305,6 +357,12 @@ export async function persistCountryPayload(
       unwrittenRules: p.unwrittenRules.map((s) => `- ${s}`).join('\n'),
       safetyBrief: p.safetyBrief ?? null,
       contentLanguage: language,
+      emergencyNumbersJson: emergencyJson,
+      crimeBrief: p.crimeBrief ?? null,
+      dangerousAnimalsJson: animalsJson,
+      qualityOfLife: p.qualityOfLife ?? null,
+      taxesJson,
+      clothingAdvice: p.clothingAdvice ?? null,
       tagline: p.tagline,
       bestTimeToVisit: p.bestTimeToVisit,
     },

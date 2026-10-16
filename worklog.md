@@ -91,3 +91,54 @@ Stage Summary:
 - Full graceful degradation: WebGPU unsupported → WebGL2 fallback → error boundary → text-only on NeuralNoise. Text + CTA always functional.
 - 4-language support on the intro text (title, subtitle, CTA all localized).
 - All animations respect prefers-reduced-motion.
+
+---
+Task ID: 4
+Agent: dashboard-cards (Z.ai Code)
+Task: Create 5 new dashboard card components (Emergency / Safety / Economy / QualityOfLife / Clothing) + add their i18n strings + add them to the dashboard layout. The aggregator already returns `dynamic.economy` (REAL World Bank data) and `country.content` new fields (`emergencyNumbers`, `crimeBrief`, `dangerousAnimals`, `qualityOfLife`, `taxes`, `clothingAdvice`) — surface them in the UI.
+
+Work Log:
+- Updated `src/components/dashboard/source-badge.tsx`: added `'world-bank': 'source.worldBank'` to the keyMap (new badge → "world-bank · real").
+- Updated `src/lib/i18n.ts`: added 15 new strings × 4 locales (en/es/it/fr) = 60 new translation entries, grouped cleanly after the existing `card.*` block:
+  - 5 new card titles (`card.emergency`, `card.safety`, `card.economy`, `card.qualityOfLife`, `card.clothing`).
+  - 4 emergency labels + disclaimer (`emergency.police/ambulance/fire/disclaimer`).
+  - 5 economy labels + noData (`economy.gdp/gdpPerCapita/inflation/unemployment/noData`).
+  - 1 source badge label (`source.worldBank` = "world-bank · real"/"world-bank · réel"/"world-bank · reale"/"world-bank · real").
+- Created `src/components/dashboard/emergency-card.tsx`: 3 stat boxes in a row (Police / Ambulance / Fire) — each box: lucide icon (Phone / Heart / Flame) + small uppercase label + big tabular-nums number. Bottom: italic "Verify locally" disclaimer. Source badge "curated". Conditional null-safety on each number (shows "—" if missing).
+- Created `src/components/dashboard/safety-card.tsx`: two-section card — (a) `crimeBrief` paragraph (top), (b) `dangerousAnimals` list with `PawPrint` icon bullet + bold name + muted description (bottom, behind a `border-t` divider). Title `ShieldAlert`. Source badge "curated".
+- Created `src/components/dashboard/economy-card.tsx`: the ONLY real-data card (World Bank). 4 stat rows: GDP, GDP per capita, Inflation, Unemployment — each with tone-coloured pill (emerald / cyan / amber / rose). Number formatters:
+  - `fmtGdp`: `$3.37T` (≥1T), `$X.XB` (≥1B), `$XXXM` (else).
+  - `fmtPerCap`: `$XX,XXX` with `toLocaleString('en-US')` thousands separators.
+  - `fmtPct`: `X.X%` one-decimal.
+  - All return `—` on null input.
+  - If `economy` is in error state, renders "Economic data unavailable" message. Source badge "world-bank" → "world-bank · real".
+- Created `src/components/dashboard/quality-of-life-card.tsx`: single-paragraph card (mirrors OverviewCard pattern). Icon `HeartPulse`. Source badge "curated".
+- Created `src/components/dashboard/clothing-card.tsx`: two-section card — (a) `clothingAdvice` paragraph (top, source "curated"), (b) taxes summary (bottom, behind `border-t` divider, with an inline `SourceBadge source="llm · estimate"` pill next to the section header). Three tone-coloured tax rows (VAT emerald, Corporate amber, Income rose). The `Landmark` icon marks the taxes section. Title `Shirt`.
+- Updated `src/components/dashboard/dashboard.tsx`:
+  - Added 5 new card imports.
+  - Added 2 new staggered grids right after the existing "Food + POI + Price" grid (and before the cache-meta footer):
+    1. 3-col grid (lg) with: EmergencyCard, EconomyCard, SafetyCard.
+    2. 2-col grid (md) with: QualityOfLifeCard, ClothingCard.
+  - Null-safety via optional chaining: `{country.content?.emergencyNumbers ? <EmergencyCard .../> : null}`. TypeScript narrows correctly inside the truthy branch. EconomyCard always renders (its own internal logic handles errors). Each card gracefully skips when its primary field is null.
+- Lint: `bun run lint` clean (no errors, no warnings).
+- TypeScript: `bunx tsc --noEmit` clean for all 5 new files (pre-existing errors elsewhere — neural-noise WebGL types, polaroid carousel matrix arity, rest-countries — are unrelated to this task).
+
+Backend / runtime verification:
+- Discovered the running dev server's Prisma client singleton was stale (didn't know about `emergencyNumbersJson` / `crimeBrief` / `dangerousAnimalsJson` / `qualityOfLife` / `taxesJson` / `clothingAdvice` for the `upsert` write path — the LLM was successfully generating them but the persist call was rejecting them as "Unknown argument"). Fixed by running `bunx prisma generate` (regenerated `@prisma/client` in `node_modules`) and restarting the dev server so the singleton picked up the new client. This is a one-time fix; fresh generations of any country now persist all the new fields correctly.
+- Re-verified end-to-end on France (`GET /api/countries/FR?lang=en` after fresh regen):
+  - `emergencyNumbers`: `{ police: "17", ambulance: "15", fire: "18", general: "112" }`
+  - `crimeBrief`: populated paragraph about pickpocketing / scams / metro hotspots.
+  - `dangerousAnimals`: 3 items (Adder, Wild Boar, Brown Bear) with descriptions.
+  - `qualityOfLife`: paragraph on healthcare / education / work-life balance.
+  - `taxes`: `{ vatRate: "20%", corporateTax: "25%", incomeTax: "0-45% progressive", notes: "..." }`
+  - `clothingAdvice`: paragraph on layering + modest attire for religious sites.
+  - `economy` (REAL World Bank data): gdpUsd $3.37T, gdpPerCapitaUsd $48,986, inflationRate 0.9%, unemploymentRate 7.5% — matches spec example exactly.
+
+Stage Summary:
+- 5 new dashboard cards added with consistent glass-card aesthetic matching the existing weather-card pattern.
+- 60 new i18n entries (15 strings × 4 locales).
+- The EconomyCard is the only one with REAL data (World Bank) — clearly labelled "world-bank · real". All other new cards use AI-curated content (labelled "curated", with the ClothingCard's taxes sub-section labelled "llm · estimate").
+- Number formatting matches spec: GDP $3.37T, GDP/cap $48,986, inflation 0.9%, unemployment 7.5%.
+- Null-safety: each card gracefully skips when its primary content field is null; the EconomyCard always renders and degrades to "Economic data unavailable" on API failure.
+- Fixed a pre-existing Prisma client staleness bug that was blocking the new fields from being persisted (regenerate + restart). Verified end-to-end on FR.
+

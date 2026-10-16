@@ -17,6 +17,11 @@ import { FoodCard } from './food-card';
 import { PoiCard } from './poi-card';
 import { PriceCard } from './price-card';
 import { PhotoCarouselCard } from './photo-carousel-card';
+import { EmergencyCard } from './emergency-card';
+import { EconomyCard } from './economy-card';
+import { SafetyCard } from './safety-card';
+import { QualityOfLifeCard } from './quality-of-life-card';
+import { ClothingCard } from './clothing-card';
 import { DashboardSkeleton } from './skeletons';
 
 /**
@@ -95,6 +100,27 @@ function DashboardContent({
         <FoodCard foods={country.foods} />
         <PoiCard pois={country.pois} />
         {country.priceEstimate ? <PriceCard estimate={country.priceEstimate} /> : null}
+      </div>
+
+      {/* Emergency + Economy + Safety (3 columns) — staggered cascade entrance */}
+      <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {country.content?.emergencyNumbers ? (
+          <EmergencyCard numbers={country.content.emergencyNumbers} />
+        ) : null}
+        <EconomyCard economy={dynamic.economy} />
+        {country.content?.crimeBrief ? (
+          <SafetyCard crimeBrief={country.content.crimeBrief} dangerousAnimals={country.content.dangerousAnimals} />
+        ) : null}
+      </div>
+
+      {/* Quality of life + Clothing (2 columns) — staggered cascade entrance */}
+      <div className="stagger grid gap-4 md:grid-cols-2">
+        {country.content?.qualityOfLife ? (
+          <QualityOfLifeCard qualityOfLife={country.content.qualityOfLife} />
+        ) : null}
+        {country.content?.clothingAdvice ? (
+          <ClothingCard clothingAdvice={country.content.clothingAdvice} taxes={country.content.taxes} />
+        ) : null}
       </div>
 
       {/* Refresh + cache meta — refined glass */}
