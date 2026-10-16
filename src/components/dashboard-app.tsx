@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Globe2, Compass, Sparkles } from 'lucide-react';
+import { Globe2, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -10,6 +10,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
 import { IntroScreen } from '@/components/intro-screen';
+import { GlobeLogo } from '@/components/globe-logo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useT } from '@/components/language-provider';
@@ -106,8 +107,8 @@ function DashboardAppInner() {
         <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-2.5">
-              <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-md shadow-amber-500/20">
-                <Compass className="size-5" />
+              <div className="text-foreground">
+                <GlobeLogo size={30} className="text-foreground" />
               </div>
               <div className="leading-tight">
                 <h1 className="text-base font-bold tracking-tight sm:text-lg">{t('app.title')}</h1>
@@ -179,31 +180,24 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="relative mx-auto flex min-h-[calc(100vh-220px)] max-w-2xl flex-col items-center justify-center py-10 text-center"
     >
-      {/* Iconic centerpiece: a rotating compass medallion over the neural backdrop. */}
+      {/* Minimalist globe mark — hand-drawn line art, monochrome */}
       <motion.div
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mb-8 grid size-24 place-items-center rounded-3xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-2xl shadow-amber-500/25"
+        className="relative mb-8 text-foreground"
       >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-        >
-          <Compass className="size-12" />
-        </motion.div>
-        {/* soft glow */}
-        <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-amber-500/40 to-rose-500/40 blur-2xl" />
+        <GlobeLogo size={64} animated className="text-foreground" />
       </motion.div>
 
       <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">
         <Sparkles className="size-3 text-amber-500" />
         {t('empty.badge')}
       </Badge>
-      <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
+      <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
         {t('empty.title1')}
         <br />
-        <span className="bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
+        <span className="text-muted-foreground">
           {t('empty.title2')}
         </span>
       </h2>
@@ -222,7 +216,7 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
               variant="outline"
               size="sm"
               onClick={() => onPick(f.code)}
-              className="gap-1.5 border-border/50 bg-background/50 backdrop-blur-md transition-all hover:border-amber-500/40 hover:bg-background/80"
+              className="gap-1.5 border-border/50 bg-background/50 backdrop-blur-md transition-all hover:border-foreground/30 hover:bg-foreground/5"
             >
               <Sparkles className="size-3 text-amber-500" />
               {f.name}

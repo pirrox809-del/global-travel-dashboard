@@ -1,13 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, CloudSun, Euro, ShieldCheck, Sparkles, Compass } from 'lucide-react';
+import { ArrowRight, CloudSun, Euro, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/components/language-provider';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { GlobeLogo } from '@/components/globe-logo';
 
 /**
  * IntroScreen — the landing / hero screen shown on first visit.
@@ -40,20 +41,14 @@ export function IntroScreen({ onEnter }: { onEnter: () => void }) {
 
       {/* Centered hero content */}
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
-        {/* Rotating compass medallion */}
+        {/* Minimalist globe mark — hand-drawn line art, monochrome, no gradient */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.7 }}
+          initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mb-8 grid size-20 place-items-center rounded-3xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-2xl shadow-amber-500/30"
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          className="relative mb-8 text-foreground"
         >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-          >
-            <Compass className="size-10" />
-          </motion.div>
-          <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-amber-500/40 to-rose-500/40 blur-2xl" />
+          <GlobeLogo size={64} animated className="text-foreground" />
         </motion.div>
 
         {/* Badge */}
@@ -73,10 +68,10 @@ export function IntroScreen({ onEnter }: { onEnter: () => void }) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="text-balance text-5xl font-bold tracking-tighter sm:text-7xl lg:text-8xl"
+          className="text-balance text-5xl font-bold tracking-tighter text-foreground sm:text-7xl lg:text-8xl"
         >
           <span className="block">{t('intro.title1')}</span>
-          <span className="block bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 bg-clip-text text-transparent">
+          <span className="block text-muted-foreground">
             {t('intro.title2')}
           </span>
         </motion.h1>
@@ -140,7 +135,7 @@ export function IntroScreen({ onEnter }: { onEnter: () => void }) {
           <Button
             size="lg"
             onClick={onEnter}
-            className="group h-12 gap-2 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-8 text-base font-medium text-white shadow-lg shadow-amber-500/25 transition-all hover:shadow-xl hover:shadow-amber-500/35"
+            className="group h-12 gap-2 rounded-full border border-border/60 bg-background/60 px-8 text-base font-medium text-foreground backdrop-blur-md transition-all hover:border-foreground/30 hover:bg-foreground hover:text-background"
           >
             {t('intro.cta')}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
