@@ -1,37 +1,43 @@
 'use client';
 
 import { useMemo } from 'react';
-import PolaroidLineCarousel, { type Slide } from '@/components/ui/polaroid-line-carousel';
+import PolaroidLineCarousel, { type Slide, type LandPalette } from '@/components/ui/polaroid-line-carousel';
 import type { CountryDynamic } from '@/lib/types';
+
+const PAINT_PALETTE: LandPalette[] = ['dawn', 'alpine', 'dusk', 'mist'];
 
 /**
  * PhotoCarouselCard — displays real country photos in the PolaroidLineCarousel.
  *
- * Photos come from Wikipedia (capital city + each POI's Wikipedia article lead
- * image). They are REAL Wikimedia Commons photos — not AI-generated, not stock.
- * Cached 7 days server-side (photo URLs are stable).
- *
- * The carousel is full-width with a fixed height (~420px) so the polaroids
- * hang at a comfortable viewing size. Drag, click, or use ←/→ arrows.
+ * Photos come from Wikipedia (country + capital + POIs). If a country has fewer
+ * than 6 real photos, we PAD the carousel with painted landscape slides so it's
+ * always full and visually consistent — no empty slots, no broken-image icons.
  */
 export function PhotoCarouselCard({ photos }: { photos: CountryDynamic['photos'] }) {
   const slides = useMemo<Slide[]>(() => {
-    if ('error' in photos) return [];
-    return photos.map((p) => ({
+    if ('error' in photos) {
+      // All-painted fallback: 6 landscapes with different palettes/seeds.
+      return Array.from({ length: 6 }, (_, i) => ({
+        palette: PAINT_PALETTE[i % PAINT_PALETTE.length],
+        seed: i * 7 + 3,
+      }));
+    }
+    const realSlides: Slide[] = photos.map((p) => ({
       image: p.image,
       title: p.title,
       caption: p.caption,
       alt: p.title,
     }));
+    // Pad to at least 6 slides with painted landscapes if we have too few.
+    while (realSlides.length < 6) {
+      const i = realSlides.length;
+      realSlides.push({
+        palette: PAINT_PALETTE[i % PAINT_PALETTE.length],
+        seed: i * 13 + 5,
+      });
+    }
+    return realSlides;
   }, [photos]);
-
-  if ('error' in photos || slides.length === 0) {
-    return (
-      <div className="flex h-64 items-center justify-center rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl text-sm text-muted-foreground">
-        📷 No photos available for this country
-      </div>
-    );
-  }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl shadow-sm shadow-black/[0.03] animate-fade-up">

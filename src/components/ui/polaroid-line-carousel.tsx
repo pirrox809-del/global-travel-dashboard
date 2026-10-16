@@ -456,7 +456,20 @@ export default function PolaroidLineCarousel({
       {slides.map((sl, i) => (
         <div key={i} className="pl-card" data-i={i} data-on={i === active ? "1" : "0"} ref={(el) => void (cards.current[i] = el)} aria-hidden={i === active ? undefined : true}>
           <div className="pl-print">
-            <div className="pl-shot">{srcs[i] ? <img src={srcs[i]} alt={sl.alt || sl.title || ""} draggable={false} /> : null}</div>
+            <div className="pl-shot">{srcs[i] ? <img
+              src={srcs[i]}
+              alt={sl.alt || sl.title || ""}
+              draggable={false}
+              onError={(e) => {
+                // If the image URL is broken (CORS, hotlink block, 404…),
+                // fall back to a painted landscape so we NEVER show the
+                // browser's broken-image icon. Only swap once.
+                const img = e.currentTarget;
+                if (img.dataset.fb) return;
+                img.dataset.fb = "1";
+                img.src = paintLandscape(sl.seed ?? i + 1, sl.palette || "dawn");
+              }}
+            /> : null}</div>
             <div className="pl-note">{sl.title || ""}</div>
           </div>
           <div className="pl-peg" />

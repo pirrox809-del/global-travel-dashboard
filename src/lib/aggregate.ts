@@ -201,8 +201,8 @@ export async function aggregateCountry(
       : Promise.reject(new Error('No coordinates for country')),
     primaryCurrency ? convertCurrency(primaryCurrency) : Promise.reject(new Error('No currency code')),
     getAdvisory(upper),
-    // Real photos: capital + POIs from Wikipedia (cached 7 days).
-    getCountryPhotos(staticData.capital, staticData.pois),
+    // Real photos: country + capital + POIs from Wikipedia (cached 7 days).
+    getCountryPhotos(staticData.name, staticData.capital, staticData.pois),
   ]);
 
   // 4. Normalise each result into a success-or-error shape.
