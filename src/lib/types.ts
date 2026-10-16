@@ -138,6 +138,7 @@ export type AggregatedCountry = {
     cache: { hits: number; misses: number; hitRate: number; size: number };
     sources: { weather: 'open-meteo'; exchange: 'frankfurter-ecb'; advisory: 'us-state-dept' };
     staticContentGenerated: boolean; // false when we just generated it on the fly
+    contentGenerating: boolean; // true when LLM content is being generated in background
   };
 };
 

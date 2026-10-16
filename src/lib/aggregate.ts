@@ -76,18 +76,51 @@ function safeParseJson(json: string | null): unknown {
 }
 
 /**
+ * In-memory lock: prevents duplicate LLM generations when multiple requests
+ * for the same country arrive simultaneously (e.g. the frontend refetching
+ * while the first generation is still running). Key = "code:locale".
+ */
+const generating = new Set<string>();
+
+/**
+ * Fire-and-forget LLM generation. Called when content doesn't exist yet.
+ * The Promise runs in the background — the HTTP response is returned
+ * immediately without waiting for it to finish. The frontend refetches
+ * after a few seconds and by then the content is ready in the DB.
+ *
+ * Uses an in-memory lock so only ONE generation per country+locale runs
+ * at a time; concurrent requests just skip.
+ */
+function triggerGeneration(country: { code: string; name: string } & Record<string, unknown>, locale: Locale) {
+  const key = `${country.code}:${locale}`;
+  if (generating.has(key)) return; // already generating — skip
+  generating.add(key);
+  console.log(`[generate] starting background LLM generation for ${country.name} (${locale})`);
+
+  generateCountryPayload(country, LOCALE_NATIVE[locale])
+    .then((payload) => persistCountryPayload(country.code, payload, locale))
+    .then(() => console.log(`[generate] ${country.name} (${locale}) done`))
+    .catch((e) => console.error(`[generate] ${country.name} (${locale}) failed:`, (e as Error).message))
+    .finally(() => generating.delete(key));
+}
+
+/**
  * Return the static, DB-sourced payload for a country (with LLM content).
  *
- * `locale` drives the LANGUAGE of the generated content. We persist
- * `contentLanguage` on the row; if the cached content's language doesn't
- * match the requested locale, we regenerate in the new language (one LLM
- * call) and persist it. This means switching language costs one generation
- * per country, then it's cached again.
+ * NON-BLOCKING: if the LLM content doesn't exist yet (or is in the wrong
+ * language), we DON'T wait for generation. We return immediately with
+ * `content: null` and trigger the generation in the background
+ * (fire-and-forget). The frontend sees `contentGenerating: true` in the
+ * meta, shows skeletons for content cards, and refetches after ~10s.
+ *
+ * This reduces first-visit latency from ~30-40s to ~2-3s (just the
+ * dynamic data fetch: weather, economy, earthquakes, photos — all in
+ * parallel + cached).
  */
 async function loadStatic(
   code: string,
   locale: Locale,
-): Promise<{ staticData: CountryStatic; justGenerated: boolean } | null> {
+): Promise<{ staticData: CountryStatic; justGenerated: boolean; contentGenerating: boolean } | null> {
   const country = await db.country.findUnique({
     where: { code: code.toUpperCase() },
     include: {
@@ -99,25 +132,18 @@ async function loadStatic(
   });
   if (!country) return null;
 
-  let justGenerated = false;
-  // Lazy LLM generation: generate if no content yet OR if the cached content
-  // is in a different language than the one requested now.
   const needsGeneration =
     !country.content || (country.content.contentLanguage ?? 'en') !== locale;
+
   if (needsGeneration) {
-    const payload = await generateCountryPayload(country, LOCALE_NATIVE[locale]);
-    await persistCountryPayload(country.code, payload, locale);
-    justGenerated = true;
-    // Re-read so the returned payload includes the freshly generated rows.
-    const refreshed = await db.country.findUnique({
-      where: { code: country.code },
-      include: { content: true, foods: true, pois: true, priceEstimate: true },
-    });
-    if (!refreshed) return null;
-    return { staticData: toDto(refreshed), justGenerated };
+    // Fire-and-forget: start generation in the background, return immediately.
+    triggerGeneration(country, locale);
+    // Return what we have (metadata) WITHOUT blocking on LLM content.
+    // content/foods/pois will be null/empty — the frontend shows skeletons.
+    return { staticData: toDto(country), justGenerated: false, contentGenerating: true };
   }
 
-  return { staticData: toDto(country), justGenerated };
+  return { staticData: toDto(country), justGenerated: false, contentGenerating: false };
 }
 
 /** Map a Prisma country (with relations) to the client-facing DTO. */
@@ -206,11 +232,11 @@ export async function aggregateCountry(
 ): Promise<AggregatedCountry | null> {
   const upper = code.toUpperCase();
 
-  // 1. Load static data (DB). May trigger a one-time LLM generation
-  //    (or a re-generation if the cached content's language differs).
+  // 1. Load static data (DB). NON-BLOCKING: if content needs generation,
+  //    it's triggered fire-and-forget and contentGenerating=true is returned.
   const staticResult = await loadStatic(upper, locale);
   if (!staticResult) return null;
-  const { staticData, justGenerated } = staticResult;
+  const { staticData, justGenerated, contentGenerating } = staticResult;
 
   // 2. Resolve the country's primary currency code (first in the map).
   const primaryCurrency = staticData.currencies[0]?.code ?? null;
@@ -326,6 +352,7 @@ export async function aggregateCountry(
       cache: cache.stats(),
       sources: { weather: 'open-meteo', exchange: 'frankfurter-ecb', advisory: 'us-state-dept' },
       staticContentGenerated: justGenerated,
+      contentGenerating, // true when LLM content is being generated in background
     },
   };
 }

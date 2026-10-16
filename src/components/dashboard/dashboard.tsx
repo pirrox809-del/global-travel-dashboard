@@ -1,8 +1,10 @@
 'use client';
 
-import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCountry } from '@/hooks/use-country';
 import { useT } from '@/components/language-provider';
 import type { AggregatedCountry } from '@/lib/types';
@@ -67,9 +69,22 @@ function DashboardContent({
 }) {
   const t = useT();
   const { country, dynamic, meta } = data;
+  const generating = meta.contentGenerating;
+  const hasContent = !!country.content;
   return (
     <div className="space-y-6">
-      {meta.staticContentGenerated ? (
+      {/* Generating banner — shown while LLM content is being created */}
+      {generating ? (
+        <Alert className="border-amber-500/30 bg-amber-500/5">
+          <Loader2 className="size-4 animate-spin text-amber-600" />
+          <AlertTitle className="text-amber-700 dark:text-amber-300">
+            Generating travel brief…
+          </AlertTitle>
+          <AlertDescription className="text-xs">
+            Live data is ready below. The AI-curated content (culture, food, safety, etc.) is being generated and will appear automatically in ~15s.
+          </AlertDescription>
+        </Alert>
+      ) : meta.staticContentGenerated ? (
         <Alert className="border-emerald-500/30 bg-emerald-500/5">
           <Sparkles className="size-4 text-emerald-600" />
           <AlertTitle className="text-emerald-700 dark:text-emerald-300">
@@ -86,7 +101,7 @@ function DashboardContent({
       {/* Real photos from Wikipedia — polaroid carousel */}
       <PhotoCarouselCard photos={dynamic.photos} />
 
-      {/* Live data row (3 cards) — staggered cascade entrance */}
+      {/* Live data row (3 cards) — always available immediately */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <WeatherCard weather={dynamic.weather} />
         <ExchangeCard exchange={dynamic.exchange} />
@@ -94,61 +109,72 @@ function DashboardContent({
       </div>
 
       {/* Overview full width */}
-      {country.content ? <OverviewCard content={country.content} /> : null}
+      {hasContent && country.content ? <OverviewCard content={country.content} /> : generating ? <ContentSkeleton height="h-32" /> : null}
 
       {/* Culture + unwritten rules (2 columns) */}
-      {country.content ? <CultureCard content={country.content} /> : null}
+      {hasContent && country.content ? <CultureCard content={country.content} /> : generating ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ContentSkeleton height="h-48" />
+          <ContentSkeleton height="h-48" />
+        </div>
+      ) : null}
 
-      {/* Food + POI + Price (3 columns) — staggered cascade entrance */}
-      <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <FoodCard foods={country.foods} />
-        <PoiCard pois={country.pois} />
-        {country.priceEstimate ? <PriceCard estimate={country.priceEstimate} /> : null}
-      </div>
+      {/* Food + POI + Price (3 columns) */}
+      {hasContent ? (
+        <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <FoodCard foods={country.foods} />
+          <PoiCard pois={country.pois} />
+          {country.priceEstimate ? <PriceCard estimate={country.priceEstimate} /> : null}
+        </div>
+      ) : generating ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ContentSkeleton height="h-64" />
+          <ContentSkeleton height="h-64" />
+          <ContentSkeleton height="h-64" />
+        </div>
+      ) : null}
 
-      {/* Emergency + Economy + Safety (3 columns) — staggered cascade entrance */}
+      {/* Emergency + Economy + Safety (3 columns) — Economy is always real */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {country.content?.emergencyNumbers ? (
+        {hasContent && country.content?.emergencyNumbers ? (
           <EmergencyCard numbers={country.content.emergencyNumbers} />
-        ) : null}
+        ) : generating ? <ContentSkeleton height="h-40" /> : null}
         <EconomyCard economy={dynamic.economy} />
-        {country.content?.crimeBrief ? (
+        {hasContent && country.content?.crimeBrief ? (
           <SafetyCard crimeBrief={country.content.crimeBrief} dangerousAnimals={country.content.dangerousAnimals} />
-        ) : null}
+        ) : generating ? <ContentSkeleton height="h-40" /> : null}
       </div>
 
-      {/* Quality of life + Clothing (2 columns) — staggered cascade entrance */}
+      {/* Quality of life + Clothing (2 columns) */}
       <div className="stagger grid gap-4 md:grid-cols-2">
-        {country.content?.qualityOfLife ? (
+        {hasContent && country.content?.qualityOfLife ? (
           <QualityOfLifeCard qualityOfLife={country.content.qualityOfLife} />
-        ) : null}
-        {country.content?.clothingAdvice ? (
+        ) : generating ? <ContentSkeleton height="h-32" /> : null}
+        {hasContent && country.content?.clothingAdvice ? (
           <ClothingCard clothingAdvice={country.content.clothingAdvice} taxes={country.content.taxes} />
-        ) : null}
+        ) : generating ? <ContentSkeleton height="h-32" /> : null}
       </div>
 
-      {/* Seismic + Internet + Media (3 columns) — staggered cascade entrance.
-          SeismicCard takes BOTH dynamic.earthquakes (real USGS) AND
-          country.content.naturalDisasterRisk (LLM paragraph). */}
+      {/* Seismic + Internet + Media (3 columns) — Seismic is always real */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {!('error' in dynamic.earthquakes) || country.content?.naturalDisasterRisk ? (
           <SeismicCard
             earthquakes={dynamic.earthquakes}
             naturalDisasterRisk={country.content?.naturalDisasterRisk ?? null}
           />
-        ) : null}
-        {country.content?.internetQuality ? (
+        ) : generating ? <ContentSkeleton height="h-48" /> : null}
+        {hasContent && country.content?.internetQuality ? (
           <InternetCard internetQuality={country.content.internetQuality} />
-        ) : null}
-        {country.content?.tvChannels?.length ? (
+        ) : generating ? <ContentSkeleton height="h-48" /> : null}
+        {hasContent && country.content?.tvChannels?.length ? (
           <MediaCard channels={country.content.tvChannels} />
-        ) : null}
+        ) : generating ? <ContentSkeleton height="h-48" /> : null}
       </div>
 
       {/* Famous people — full width below */}
-      {country.content?.famousPeople?.length ? (
+      {hasContent && country.content?.famousPeople?.length ? (
         <FamousPeopleCard people={country.content.famousPeople} />
-      ) : null}
+      ) : generating ? <ContentSkeleton height="h-40" /> : null}
 
       {/* Refresh + cache meta — refined glass */}
       <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 px-4 py-2.5 text-xs text-muted-foreground backdrop-blur-xl">
@@ -161,5 +187,19 @@ function DashboardContent({
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Skeleton placeholder for LLM-content cards while they're being generated. */
+function ContentSkeleton({ height = 'h-40' }: { height?: string }) {
+  return (
+    <Card className="border-border/50 bg-card/60 backdrop-blur-xl">
+      <CardHeader className="pb-3">
+        <Skeleton className="h-5 w-32" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className={`${height} w-full rounded-lg`} />
+      </CardContent>
+    </Card>
   );
 }

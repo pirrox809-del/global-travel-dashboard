@@ -194,3 +194,29 @@ Stage Summary:
 - Null-safety: each card gracefully skips when its primary content field is null/empty; the SeismicCard is the most defensive (skips when earthquakes errored AND no risk paragraph).
 - Regenerated the Prisma client + restarted the dev server so the 4 new content columns are persisted + selected correctly. All cached `CountryContent` rows from before the regen still have NULL new-field values — they'll be regenerated on next `?lang=XX` request if the cached `contentLanguage` differs (or by deleting the row).
 
+
+---
+Task ID: 6
+Agent: main (Z.ai Code)
+Task: Optimize loading speed — reduce first-visit latency from 30-40s to <6s without sacrificing data precision.
+
+Work Log:
+- Identified the bottleneck: the LLM generation (30-40s) blocked the entire API response. All dynamic data (weather, economy, earthquakes, photos) was waiting behind the LLM call.
+- Made the aggregator NON-BLOCKING: `loadStatic` now returns immediately with `content: null` + `contentGenerating: true` when LLM content doesn't exist. The LLM generation is triggered fire-and-forget (runs in the background, writes to DB when done).
+- Added in-memory lock (`generating` Set) to prevent duplicate generations when multiple requests for the same country arrive simultaneously.
+- Added `contentGenerating` flag to the `AggregatedCountry.meta` type.
+- Updated `useCountry` hook with auto-refetch: when `contentGenerating === true`, the frontend polls every 8s until the content is ready (then stops).
+- Updated `dashboard.tsx` with: (a) "Generating travel brief…" banner with spinner, (b) `ContentSkeleton` component for LLM-dependent cards, (c) conditional rendering that shows real data cards immediately + skeletons for content cards while generating.
+- Verified with Agent Browser on Luxembourg (never-visited country):
+  - First response: 5.2s (was 30-40s) — 6-8x faster
+  - Real data immediately visible: weather (11.7°), economy (GDP), earthquakes (USGS), photos (Wikipedia)
+  - "Generating travel brief…" banner + skeleton placeholders for content cards
+  - After ~15s: content auto-filled in (Overview, Culture, Food, Emergency, Safety, etc.) — no manual refresh needed
+  - Cached (2nd visit): 0.05s (instant)
+
+Stage Summary:
+- First-visit latency reduced from 30-40s → 5.2s (6-8x faster, all real data visible immediately)
+- LLM content generates in background, fills in automatically after ~15s via auto-refetch
+- No data precision sacrificed — all real APIs (World Bank, USGS, Open-Meteo, etc.) still fetched in parallel
+- In-memory lock prevents duplicate background generations
+- Skeletons + "Generating" banner give clear UX feedback

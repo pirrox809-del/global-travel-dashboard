@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type {
   AggregatedCountry,
@@ -17,7 +18,6 @@ export function useCountryList() {
       if (!res.ok) throw new Error('Failed to load country list');
       return res.json();
     },
-    // The list basically never changes once synced.
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -25,13 +25,19 @@ export function useCountryList() {
 /**
  * Fetch + cache the aggregated dashboard for one country.
  *
- * The locale is part of the query key: switching language triggers a refetch,
- * which may regenerate the LLM content in the new language (one-time cost,
- * then cached in the DB in that language).
+ * AUTO-REFETCH: when the API returns `meta.contentGenerating === true`, it
+ * means the LLM content is being generated in the background (fire-and-forget).
+ * The first response arrives fast (~2-3s) with all the REAL dynamic data
+ * (weather, economy, earthquakes, photos) but `country.content` is null.
+ * We automatically refetch every 8s until `contentGenerating` becomes false
+ * (meaning the LLM content is now ready in the DB).
+ *
+ * This gives the user instant access to real data while the AI-curated
+ * content fills in after ~15-30s.
  */
 export function useCountry(code: string | null) {
   const { locale } = useLanguage();
-  return useQuery<AggregatedCountry>({
+  const query = useQuery<AggregatedCountry>({
     queryKey: ['country', code, locale as Locale],
     enabled: !!code,
     queryFn: async () => {
@@ -42,8 +48,19 @@ export function useCountry(code: string | null) {
       }
       return res.json();
     },
-    // Dynamic data is freshness-controlled server-side; keep client staleTime
-    // short so manual refetches / window-focus work but we don't spam.
     staleTime: 60 * 1000,
   });
+
+  // Auto-refetch while LLM content is generating in the background.
+  const contentGenerating = query.data?.meta?.contentGenerating === true;
+  useEffect(() => {
+    if (!contentGenerating) return;
+    // Poll every 8s until content is ready.
+    const interval = setInterval(() => {
+      query.refetch();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [contentGenerating, query]);
+
+  return query;
 }
