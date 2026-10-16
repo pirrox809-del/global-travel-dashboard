@@ -107,6 +107,14 @@ model CountryContent {
   taxesJson       String?
   /// Paragraph on recommended clothing by season.
   clothingAdvice  String?
+  /// Paragraph on internet quality (fiber/5G coverage, rural vs urban).
+  internetQuality String?
+  /// Paragraph on natural disaster risk (tsunamis, hurricanes, monsoons, volcanoes).
+  naturalDisasterRisk String?
+  /// JSON array of TV channels [{name, type}].
+  tvChannelsJson  String?
+  /// JSON array of famous people [{name, profession}].
+  famousPeopleJson String?
   /// Short tagline, e.g. "The Hexagon of gastronomy and art de vivre".
   tagline         String?
   /// Best months to visit, e.g. "Apr–Jun, Sep–Oct".

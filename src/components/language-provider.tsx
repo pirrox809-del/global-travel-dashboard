@@ -22,7 +22,7 @@ import {
   type MessageKey,
 } from '@/lib/i18n';
 
-type TFn = (key: MessageKey, params?: Record<string, string | number>) => string;
+export type TFn = (key: MessageKey, params?: Record<string, string | number>) => string;
 
 type LanguageContextValue = {
   locale: Locale;

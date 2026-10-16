@@ -142,3 +142,55 @@ Stage Summary:
 - Null-safety: each card gracefully skips when its primary content field is null; the EconomyCard always renders and degrades to "Economic data unavailable" on API failure.
 - Fixed a pre-existing Prisma client staleness bug that was blocking the new fields from being persisted (regenerate + restart). Verified end-to-end on FR.
 
+---
+Task ID: 5
+Agent: dashboard-cards-extra (Z.ai Code)
+Task: Create 4 new dashboard card components (Seismic / Internet / Media / FamousPeople) + add their i18n strings + wire them into the dashboard layout. The aggregator now returns `dynamic.earthquakes` (REAL USGS data) and 4 new `country.content` fields (`internetQuality`, `naturalDisasterRisk`, `tvChannels`, `famousPeople`) — surface them in the UI.
+
+Work Log:
+- Updated `src/components/dashboard/source-badge.tsx`: added `usgs: 'source.usgs'` to the keyMap.
+- Updated `src/components/language-provider.tsx`: exported `TFn` type (was internal) so the new SeismicCard's `QuakeDataSection` helper can cleanly type the `t` parameter passed down.
+- Updated `src/lib/i18n.ts`: added 15 strings × 4 locales = 60 new translation entries, inserted right after `card.clothing`:
+  - 4 new card titles (`card.seismic`, `card.internet`, `card.media`, `card.famousPeople`).
+  - 5 seismic labels (`seismic.recentCount` with `{n}` interpolation, `seismic.largest`, `seismic.recent`, `seismic.notable`, `seismic.noneActive`).
+  - 5 TV type labels (`tv.public`, `tv.private`, `tv.news`, `tv.sports`, `tv.entertainment`).
+  - 1 source badge label (`source.usgs` = "usgs · real" / "usgs · réel" / "usgs · reale" / "usgs · real").
+- Created `src/components/dashboard/seismic-card.tsx` (MIXED: USGS real + LLM paragraph):
+  - Header `Activity` icon (amber-600) + `card.seismic` title. The header `SourceBadge` is "usgs" when earthquakes has data; "curated" when only the risk paragraph is available (earthquakes errored).
+  - Top section (USGS data): recentCount line (`seismic.recentCount` with `{n}`), 2-col grid with "Largest recorded" (rose tone) + "Most recent" (amber tone) — each shows `M{magnitude.toFixed(1)}` + place (truncate) + `fmt.dateLong(date)`. Below: "Notable events" list with amber `M{mag}` pill + place + date.
+  - When `notableEvents.length === 0`: render the green positive message `seismic.noneActive` with `ShieldCheck` icon (instead of the data section).
+  - Bottom section (LLM paragraph): `border-t pt-3` divider + right-aligned `SourceBadge source="curated"` + paragraph.
+  - Skips entirely when earthquakes is in error AND `naturalDisasterRisk` is null (returns null).
+- Created `src/components/dashboard/internet-card.tsx`: single paragraph card. `Wifi` icon (cyan-600), `card.internet` title, "curated" badge. Skips if `internetQuality` is null.
+- Created `src/components/dashboard/media-card.tsx`: TV channels list. `Tv` icon (fuchsia-600), `card.media` title, "curated" badge. Each row: channel name (truncate) + colour-coded `Badge` for type. Type colour map: public=teal, private=violet, news=amber, sports=rose, entertainment=cyan (custom classes via `bg-{color}-500/10 text-{color}-700 dark:text-{color}-300`). Unknown types fall back to muted. List wrapped in `max-h-80 overflow-y-auto scroll-soft`. Skips if channels is null or empty.
+- Created `src/components/dashboard/famous-people-card.tsx`: 2-col grid of name (bold) + profession (muted). `Star` icon (amber-500), `card.famousPeople` title, "curated" badge. `grid-cols-1 sm:grid-cols-2` layout; if more than 5 people, wrapped in `max-h-80 overflow-y-auto scroll-soft`. Skips if list is null or empty.
+- Updated `src/components/dashboard/dashboard.tsx`: imported 4 new cards, added 1 new staggered grid + 1 full-width card right after the existing Quality/Clothing grid:
+  1. `stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3` with: SeismicCard, InternetCard, MediaCard.
+  2. FamousPeopleCard full-width (root level, no grid).
+  Conditional rendering via optional chaining: SeismicCard renders when earthquakes has data OR `naturalDisasterRisk` is non-null; the other cards render only when their primary content field is truthy.
+- Lint: `bun run lint` clean (no errors, no warnings).
+- TypeScript: `bunx tsc --noEmit` clean for all 4 new files + dashboard.tsx + source-badge.tsx + language-provider.tsx. No new type errors introduced (pre-existing errors in `advisory-card.tsx`, `weather-card.tsx`, `country-globe.tsx`, `ui/globe.tsx`, `ui/neural-noise.tsx`, `ui/polaroid-line-carousel.tsx`, `aggregate.ts` are unrelated).
+- Runtime: bumped the Prisma client (`bunx prisma generate`) so the dev server's SELECT now includes `internetQuality / naturalDisasterRisk / tvChannelsJson / famousPeopleJson` columns. Restarted the dev server to pick up the regenerated client.
+- End-to-end verified on FR (deleted cached row → fresh regen):
+  - earthquakes (REAL USGS): `recentCount = 0`, `notableEvents = []` → SeismicCard shows green "No significant seismic activity" message.
+  - internetQuality: paragraph populated ("Internet is excellent in cities with widespread fiber…").
+  - naturalDisasterRisk: paragraph populated ("France faces moderate seismic activity in the southeast…").
+  - tvChannels: 5 channels (TF1 private, France 2 public, France 24 news, Canal+ private, M6 private).
+  - famousPeople: 5 people (Napoleon/military leader, Marie Curie/scientist, Brigitte Bardot/actress, Jean-Paul Sartre/writer, Zinedine Zidane/footballer).
+- End-to-end verified on JP (deleted cached row → fresh regen, took 51s after a JSON-retry):
+  - earthquakes (REAL USGS): `recentCount = 50`, `largestMagnitude = 5.8` (M5.8 · "3 km E of Fujishiro, Japan" · Aug 22, 2026), `mostRecent = M4.7 · "6 km ESE of Tōgane, Japan"`, 3 notable events.
+  - naturalDisasterRisk: paragraph populated ("Japan sits on the Pacific Ring of Fire…").
+  - tvChannels: 5 channels (NHK public, Nippon TV/TBS/Fuji TV/TV Asahi private).
+  - famousPeople: 5 people (Akira Kurosawa, Hayao Miyazaki, Yoko Ono, Haruki Murakami, Ryuichi Sakamoto).
+- Bundle inspection: client chunk `_next/static/chunks/src_3f72090f._.js` contains all 15 new i18n keys + `source.usgs` + the 4 new card component names.
+
+Stage Summary:
+- 4 new dashboard cards added with consistent glass-card aesthetic matching the existing weather-card pattern.
+- 60 new i18n entries (15 strings × 4 locales).
+- The SeismicCard is the second card with REAL data (USGS, after the EconomyCard's World Bank). Clearly labelled "usgs · real" for the data section, with a separate "curated" badge for the natural-disaster risk paragraph. The SeismicCard is also the only card combining TWO data sources.
+- Magnitude formatting matches spec: M5.8, M4.7, M5.0. Dates formatted via `fmt.dateLong()` (locale-aware, e.g. "Aug 22, 2026" in en).
+- TV channel type colour-coding matches spec: public=teal, private=violet, news=amber, sports=rose, entertainment=cyan.
+- Famous-people card uses a clean 2-column grid layout (not a list), collapsing to 1 column on mobile, with scroll for >5 people.
+- Null-safety: each card gracefully skips when its primary content field is null/empty; the SeismicCard is the most defensive (skips when earthquakes errored AND no risk paragraph).
+- Regenerated the Prisma client + restarted the dev server so the 4 new content columns are persisted + selected correctly. All cached `CountryContent` rows from before the regen still have NULL new-field values — they'll be regenerated on next `?lang=XX` request if the cached `contentLanguage` differs (or by deleting the row).
+

@@ -51,6 +51,10 @@ export type CountryStatic = {
     qualityOfLife: string | null;
     taxes: { vatRate: string; corporateTax: string; incomeTax: string; notes: string } | null;
     clothingAdvice: string | null;
+    internetQuality: string | null;
+    naturalDisasterRisk: string | null;
+    tvChannels: { name: string; type: string }[] | null;
+    famousPeople: { name: string; profession: string }[] | null;
     tagline: string | null;
     bestTimeToVisit: string | null;
   } | null;
@@ -112,6 +116,15 @@ export type CountryDynamic = {
         gdpYear: number | null;
         inflationRate: number | null;
         unemploymentRate: number | null;
+      }
+    | { error: string };
+  earthquakes:
+    | {
+        recentCount: number;
+        largestMagnitude: number | null;
+        largestEvent: { magnitude: number; place: string; date: string } | null;
+        mostRecent: { magnitude: number; place: string; date: string } | null;
+        notableEvents: { magnitude: number; place: string; date: string }[];
       }
     | { error: string };
 };

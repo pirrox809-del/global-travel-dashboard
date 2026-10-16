@@ -16,6 +16,7 @@ export function SourceBadge({ source }: { source: string }) {
     'llm · estimate': 'source.llmEstimate',
     curated: 'source.curated',
     'world-bank': 'source.worldBank',
+    usgs: 'source.usgs',
     unavailable: 'source.unavailable',
   };
   const label = keyMap[source] ? t(keyMap[source]) : source;

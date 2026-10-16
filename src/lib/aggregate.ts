@@ -29,6 +29,7 @@ import { getAdvisory } from '@/lib/external/travel-advisory';
 import { generateCountryPayload, persistCountryPayload } from '@/lib/external/llm-content';
 import { getCountryPhotos } from '@/lib/external/wikipedia-images';
 import { getEconomyData } from '@/lib/external/worldbank';
+import { getEarthquakeData } from '@/lib/external/usgs';
 import { LOCALE_NATIVE, DEFAULT_LOCALE, type Locale } from '@/lib/i18n';
 import type { AggregatedCountry, CountryStatic, CountryDynamic } from '@/lib/types';
 
@@ -153,6 +154,10 @@ function toDto(c: NonNullable<Awaited<ReturnType<typeof db.country.findUnique<{ 
           qualityOfLife: c.content.qualityOfLife,
           taxes: safeParseJson(c.content.taxesJson) as { vatRate: string; corporateTax: string; incomeTax: string; notes: string } | null,
           clothingAdvice: c.content.clothingAdvice,
+          internetQuality: c.content.internetQuality,
+          naturalDisasterRisk: c.content.naturalDisasterRisk,
+          tvChannels: safeParseJson(c.content.tvChannelsJson) as { name: string; type: string }[] | null,
+          famousPeople: safeParseJson(c.content.famousPeopleJson) as { name: string; profession: string }[] | null,
           tagline: c.content.tagline,
           bestTimeToVisit: c.content.bestTimeToVisit,
         }
@@ -212,7 +217,7 @@ export async function aggregateCountry(
 
   // 3. PARALLEL FETCH of all dynamic sources.
   //    Use Promise.allSettled so a single failure doesn't poison the rest.
-  const [weatherRes, exchangeRes, advisoryRes, photosRes, economyRes] = await Promise.allSettled([
+  const [weatherRes, exchangeRes, advisoryRes, photosRes, economyRes, quakeRes] = await Promise.allSettled([
     staticData.latitude != null && staticData.longitude != null
       ? getWeather(staticData.latitude, staticData.longitude)
       : Promise.reject(new Error('No coordinates for country')),
@@ -222,6 +227,8 @@ export async function aggregateCountry(
     getCountryPhotos(staticData.name, staticData.capital, staticData.pois),
     // Real GDP from World Bank (official data, cached 7 days).
     getEconomyData(staticData.code3),
+    // Real earthquake data from USGS (seismic events near the country, cached 7 days).
+    getEarthquakeData(staticData.latitude, staticData.longitude),
   ]);
 
   // 4. Normalise each result into a success-or-error shape.
@@ -299,10 +306,21 @@ export async function aggregateCountry(
         }
       : { error: economyRes.status === 'rejected' ? String(economyRes.reason?.message ?? economyRes.reason) : 'No economic data' };
 
+  const earthquakes: CountryDynamic['earthquakes'] =
+    quakeRes.status === 'fulfilled' && quakeRes.value
+      ? {
+          recentCount: quakeRes.value.recentCount,
+          largestMagnitude: quakeRes.value.largestMagnitude,
+          largestEvent: quakeRes.value.largestEvent,
+          mostRecent: quakeRes.value.mostRecent,
+          notableEvents: quakeRes.value.notableEvents,
+        }
+      : { error: quakeRes.status === 'rejected' ? String(quakeRes.reason?.message ?? quakeRes.reason) : 'No seismic data' };
+
   // 5. Assemble final payload.
   return {
     country: staticData,
-    dynamic: { weather, exchange, advisory, photos, economy },
+    dynamic: { weather, exchange, advisory, photos, economy, earthquakes },
     meta: {
       generatedAt: new Date().toISOString(),
       cache: cache.stats(),

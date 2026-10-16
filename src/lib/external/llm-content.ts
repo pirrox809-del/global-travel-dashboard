@@ -57,6 +57,14 @@ export type LlmCountryPayload = {
   taxes: { vatRate: string; corporateTax: string; incomeTax: string; notes: string };
   /// Clothing advice by season. ~60 words.
   clothingAdvice: string;
+  /// Internet quality: fiber/5G coverage, urban vs rural. ~50 words.
+  internetQuality: string;
+  /// Natural disaster risk: earthquakes, tsunamis, hurricanes, monsoons, volcanoes. ~60 words.
+  naturalDisasterRisk: string;
+  /// Major TV channels. 3-5 entries.
+  tvChannels: { name: string; type: 'public' | 'private' | 'news' | 'sports' | 'entertainment' }[];
+  /// Famous people from this country. 3-5 entries.
+  famousPeople: { name: string; profession: string }[];
   foods: { name: string; description: string; category: 'main' | 'dessert' | 'street' | 'drink' }[];
   pois: {
     name: string;
@@ -130,6 +138,14 @@ Return STRICT JSON with EXACTLY this shape and field names:
     "notes": "one sentence on notable tax features (e.g. tax havens, special zones, high/low burden)"
   },
   "clothingAdvice": "a single paragraph, 50-80 words, on recommended clothing by season: what to pack for summer vs winter, any cultural dress considerations (e.g. modest attire for religious sites), and climate-specific gear (rain, sun, cold).",
+  "internetQuality": "a single paragraph, 40-60 words, on internet quality: typical broadband/mobile speeds, fiber availability in cities vs rural areas, 4G/5G coverage, and whether tourists can easily get SIM cards or public WiFi.",
+  "naturalDisasterRisk": "a single paragraph, 50-70 words, on natural disaster risks specific to this country: seismic activity, tsunami risk if coastal, hurricane/cyclone/monsoon seasons, volcanic activity, flooding or drought. Be factual and proportionate.",
+  "tvChannels": [
+    { "name": "...", "type": "public|private|news|sports|entertainment" }
+  ]  // 3-5 major national TV channels
+  "famousPeople": [
+    { "name": "...", "profession": "e.g. 'footballer', 'actress', 'politician', 'singer', 'writer'" }
+  ]  // 3-5 famous people born in or strongly associated with this country
   "foods": [
     { "name": "...", "description": "<= 25 words", "category": "main|dessert|street|drink" }
   ]  // 4-6 signature dishes
@@ -253,6 +269,10 @@ function validatePayload(p: LlmCountryPayload) {
   if (!p.crimeBrief) p.crimeBrief = '';
   if (!p.qualityOfLife) p.qualityOfLife = '';
   if (!p.clothingAdvice) p.clothingAdvice = '';
+  if (!p.internetQuality) p.internetQuality = '';
+  if (!p.naturalDisasterRisk) p.naturalDisasterRisk = '';
+  if (!Array.isArray(p.tvChannels)) p.tvChannels = [];
+  if (!Array.isArray(p.famousPeople)) p.famousPeople = [];
   if (!p.taxes) {
     p.taxes = { vatRate: '', corporateTax: '', incomeTax: '', notes: '' };
   }
@@ -332,6 +352,8 @@ export async function persistCountryPayload(
   const emergencyJson = p.emergencyNumbers ? JSON.stringify(p.emergencyNumbers) : null;
   const animalsJson = p.dangerousAnimals?.length ? JSON.stringify(p.dangerousAnimals) : null;
   const taxesJson = p.taxes ? JSON.stringify(p.taxes) : null;
+  const tvJson = p.tvChannels?.length ? JSON.stringify(p.tvChannels) : null;
+  const peopleJson = p.famousPeople?.length ? JSON.stringify(p.famousPeople) : null;
 
   await db.countryContent.upsert({
     where: { countryCode },
@@ -347,6 +369,10 @@ export async function persistCountryPayload(
       qualityOfLife: p.qualityOfLife ?? null,
       taxesJson,
       clothingAdvice: p.clothingAdvice ?? null,
+      internetQuality: p.internetQuality ?? null,
+      naturalDisasterRisk: p.naturalDisasterRisk ?? null,
+      tvChannelsJson: tvJson,
+      famousPeopleJson: peopleJson,
       tagline: p.tagline,
       bestTimeToVisit: p.bestTimeToVisit,
     },
@@ -363,6 +389,10 @@ export async function persistCountryPayload(
       qualityOfLife: p.qualityOfLife ?? null,
       taxesJson,
       clothingAdvice: p.clothingAdvice ?? null,
+      internetQuality: p.internetQuality ?? null,
+      naturalDisasterRisk: p.naturalDisasterRisk ?? null,
+      tvChannelsJson: tvJson,
+      famousPeopleJson: peopleJson,
       tagline: p.tagline,
       bestTimeToVisit: p.bestTimeToVisit,
     },

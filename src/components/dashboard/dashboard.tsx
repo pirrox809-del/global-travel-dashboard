@@ -22,6 +22,10 @@ import { EconomyCard } from './economy-card';
 import { SafetyCard } from './safety-card';
 import { QualityOfLifeCard } from './quality-of-life-card';
 import { ClothingCard } from './clothing-card';
+import { SeismicCard } from './seismic-card';
+import { InternetCard } from './internet-card';
+import { MediaCard } from './media-card';
+import { FamousPeopleCard } from './famous-people-card';
 import { DashboardSkeleton } from './skeletons';
 
 /**
@@ -122,6 +126,29 @@ function DashboardContent({
           <ClothingCard clothingAdvice={country.content.clothingAdvice} taxes={country.content.taxes} />
         ) : null}
       </div>
+
+      {/* Seismic + Internet + Media (3 columns) — staggered cascade entrance.
+          SeismicCard takes BOTH dynamic.earthquakes (real USGS) AND
+          country.content.naturalDisasterRisk (LLM paragraph). */}
+      <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {!('error' in dynamic.earthquakes) || country.content?.naturalDisasterRisk ? (
+          <SeismicCard
+            earthquakes={dynamic.earthquakes}
+            naturalDisasterRisk={country.content?.naturalDisasterRisk ?? null}
+          />
+        ) : null}
+        {country.content?.internetQuality ? (
+          <InternetCard internetQuality={country.content.internetQuality} />
+        ) : null}
+        {country.content?.tvChannels?.length ? (
+          <MediaCard channels={country.content.tvChannels} />
+        ) : null}
+      </div>
+
+      {/* Famous people — full width below */}
+      {country.content?.famousPeople?.length ? (
+        <FamousPeopleCard people={country.content.famousPeople} />
+      ) : null}
 
       {/* Refresh + cache meta — refined glass */}
       <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 px-4 py-2.5 text-xs text-muted-foreground backdrop-blur-xl">
