@@ -27,6 +27,7 @@ import { getWeather, describeWeatherCode } from '@/lib/external/open-meteo';
 import { convertCurrency } from '@/lib/external/frankfurter';
 import { getAdvisory } from '@/lib/external/travel-advisory';
 import { generateCountryPayload, persistCountryPayload } from '@/lib/external/llm-content';
+import { getCountryPhotos } from '@/lib/external/wikipedia-images';
 import { LOCALE_NATIVE, DEFAULT_LOCALE, type Locale } from '@/lib/i18n';
 import type { AggregatedCountry, CountryStatic, CountryDynamic } from '@/lib/types';
 
@@ -194,12 +195,14 @@ export async function aggregateCountry(
 
   // 3. PARALLEL FETCH of all dynamic sources.
   //    Use Promise.allSettled so a single failure doesn't poison the rest.
-  const [weatherRes, exchangeRes, advisoryRes] = await Promise.allSettled([
+  const [weatherRes, exchangeRes, advisoryRes, photosRes] = await Promise.allSettled([
     staticData.latitude != null && staticData.longitude != null
       ? getWeather(staticData.latitude, staticData.longitude)
       : Promise.reject(new Error('No coordinates for country')),
     primaryCurrency ? convertCurrency(primaryCurrency) : Promise.reject(new Error('No currency code')),
     getAdvisory(upper),
+    // Real photos: capital + POIs from Wikipedia (cached 7 days).
+    getCountryPhotos(staticData.capital, staticData.pois),
   ]);
 
   // 4. Normalise each result into a success-or-error shape.
@@ -261,10 +264,15 @@ export async function aggregateCountry(
             error: advisoryRes.status === 'rejected' ? String(advisoryRes.reason?.message ?? advisoryRes.reason) : 'No advisory',
           };
 
+  const photos: CountryDynamic['photos'] =
+    photosRes.status === 'fulfilled' && photosRes.value && photosRes.value.length > 0
+      ? photosRes.value
+      : { error: photosRes.status === 'rejected' ? String(photosRes.reason?.message ?? photosRes.reason) : 'No photos found' };
+
   // 5. Assemble final payload.
   return {
     country: staticData,
-    dynamic: { weather, exchange, advisory },
+    dynamic: { weather, exchange, advisory, photos },
     meta: {
       generatedAt: new Date().toISOString(),
       cache: cache.stats(),

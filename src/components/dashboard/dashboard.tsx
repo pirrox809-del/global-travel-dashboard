@@ -16,6 +16,7 @@ import { CultureCard } from './culture-card';
 import { FoodCard } from './food-card';
 import { PoiCard } from './poi-card';
 import { PriceCard } from './price-card';
+import { PhotoCarouselCard } from './photo-carousel-card';
 import { DashboardSkeleton } from './skeletons';
 
 /**
@@ -72,6 +73,9 @@ function DashboardContent({
       ) : null}
 
       <CountryHero country={country} />
+
+      {/* Real photos from Wikipedia — polaroid carousel */}
+      <PhotoCarouselCard photos={dynamic.photos} />
 
       {/* Live data row (3 cards) — staggered cascade entrance */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">

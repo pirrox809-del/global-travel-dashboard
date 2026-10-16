@@ -98,6 +98,7 @@ export type CountryDynamic = {
     | { source: 'us-state-dept'; level: number; levelName: string; message: string; updatedAt: string | null }
     | { source: 'ai-brief'; brief: string }
     | { source: 'error'; error: string };
+  photos: { image: string; title: string; caption?: string }[] | { error: string };
 };
 
 /** Full aggregated payload returned by GET /api/countries/[code]. */
