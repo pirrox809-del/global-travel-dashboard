@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/components/language-provider';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
 import { GlobeLogo } from '@/components/globe-logo';
 
 /**
@@ -36,7 +36,7 @@ export function IntroScreen({ onEnter }: { onEnter: () => void }) {
       {/* Floating controls top-right */}
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 sm:right-6 sm:top-6">
         <LanguageSwitcher />
-        <ThemeToggle />
+        <SunMoonThemeToggle size={36} />
       </div>
 
       {/* Centered hero content */}

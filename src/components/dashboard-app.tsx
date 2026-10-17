@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Globe2, Sparkles } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
@@ -123,7 +123,7 @@ function DashboardAppInner() {
                 {t('app.aiCurated')}
               </Badge>
               <LanguageSwitcher />
-              <ThemeToggle />
+              <SunMoonThemeToggle size={36} />
             </div>
           </div>
         </header>
