@@ -10,7 +10,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
 import { IntroScreen } from '@/components/intro-screen';
-import { GlobeLogo } from '@/components/globe-logo';
+import { Globe } from '@/components/ui/globe';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useT } from '@/components/language-provider';
@@ -107,9 +107,6 @@ function DashboardAppInner() {
         <header className="sticky top-0 z-40 border-b border-border/40 bg-background/60 backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
             <div className="flex items-center gap-2.5">
-              <div className="text-foreground">
-                <GlobeLogo size={30} className="text-foreground" />
-              </div>
               <div className="leading-tight">
                 <h1 className="text-base font-bold tracking-tight sm:text-lg">{t('app.title')}</h1>
                 <p className="hidden text-[11px] text-muted-foreground sm:block">
@@ -180,14 +177,14 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="relative mx-auto flex min-h-[calc(100vh-220px)] max-w-2xl flex-col items-center justify-center py-10 text-center"
     >
-      {/* Minimalist globe mark — hand-drawn line art, monochrome */}
+      {/* Interactive 3D globe */}
       <motion.div
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mb-8 text-foreground"
+        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+        className="relative mb-8 h-48 w-48 sm:h-56 sm:w-56"
       >
-        <GlobeLogo size={64} animated className="text-foreground" />
+        <Globe className="!max-w-none" />
       </motion.div>
 
       <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">

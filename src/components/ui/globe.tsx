@@ -1,9 +1,9 @@
-'use client';
+"use client"
 
-import createGlobe, { type COBEOptions } from 'cobe';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import createGlobe, { type COBEOptions } from "cobe"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils"
 
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
@@ -31,82 +31,78 @@ const GLOBE_CONFIG: COBEOptions = {
     { location: [34.6937, 135.5022], size: 0.05 },
     { location: [41.0082, 28.9784], size: 0.06 },
   ],
-};
+}
 
 export function Globe({
   className,
   config = GLOBE_CONFIG,
 }: {
-  className?: string;
-  config?: COBEOptions;
+  className?: string
+  config?: COBEOptions
 }) {
-  // Mutable per-frame state stored in refs (idiomatic React: avoids the
-  // react-hooks/immutability rule that forbids reassigning `let` values
-  // captured by hooks). `phi` accumulates autorotate; `width` is the live
-  // canvas size; `r` is the drag offset.
-  const phiRef = useRef(0);
-  const widthRef = useRef(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointerInteracting = useRef<number | null>(null);
-  const pointerInteractionMovement = useRef(0);
-  const [r, setR] = useState(0);
+  const phiRef = useRef(0)
+  const widthRef = useRef(0)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const pointerInteracting = useRef<number | null>(null)
+  const pointerInteractionMovement = useRef(0)
+  const [r, setR] = useState(0)
 
   const updatePointerInteraction = (value: number | null) => {
-    pointerInteracting.current = value;
+    pointerInteracting.current = value
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = value ? 'grabbing' : 'grab';
+      canvasRef.current.style.cursor = value ? "grabbing" : "grab"
     }
-  };
+  }
 
   const updateMovement = (clientX: number) => {
     if (pointerInteracting.current !== null) {
-      const delta = clientX - pointerInteracting.current;
-      pointerInteractionMovement.current = delta;
-      setR(delta / 200);
+      const delta = clientX - pointerInteracting.current
+      pointerInteractionMovement.current = delta
+      setR(delta / 200)
     }
-  };
+  }
 
   const onRender = useCallback(
     (state: Record<string, number>) => {
-      if (pointerInteracting.current === null) phiRef.current += 0.005;
-      state.phi = phiRef.current + r;
-      state.width = widthRef.current * 2;
-      state.height = widthRef.current * 2;
+      if (pointerInteracting.current === null) phiRef.current += 0.005
+      state.phi = phiRef.current + r
+      state.width = widthRef.current * 2
+      state.height = widthRef.current * 2
     },
     [r],
-  );
+  )
 
   const onResize = useCallback(() => {
     if (canvasRef.current) {
-      widthRef.current = canvasRef.current.offsetWidth;
+      widthRef.current = canvasRef.current.offsetWidth
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
-    window.addEventListener('resize', onResize);
-    onResize();
+    window.addEventListener("resize", onResize)
+    onResize()
 
     const globe = createGlobe(canvasRef.current!, {
       ...config,
       width: widthRef.current * 2,
       height: widthRef.current * 2,
       onRender,
-    });
+    })
 
     const t = setTimeout(() => {
-      if (canvasRef.current) canvasRef.current.style.opacity = '1';
-    });
+      if (canvasRef.current) canvasRef.current.style.opacity = "1"
+    })
     return () => {
-      clearTimeout(t);
-      globe.destroy();
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
+      clearTimeout(t)
+      globe.destroy()
+      window.removeEventListener("resize", onResize)
+    }
+  }, [])
 
   return (
     <div
       className={cn(
-        'absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[600px]',
+        "absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[600px]",
         className,
       )}
     >
@@ -122,5 +118,5 @@ export function Globe({
         onTouchMove={(e) => e.touches[0] && updateMovement(e.touches[0].clientX)}
       />
     </div>
-  );
+  )
 }
