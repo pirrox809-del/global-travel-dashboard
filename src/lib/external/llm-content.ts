@@ -170,6 +170,68 @@ Rules:
 - Keep proper nouns (place names, dish names) in their original form when that is the local convention, but write all descriptive text in ${languageName}.`;
 }
 
+/** Build the CORE prompt: tagline, overview, culture, foods, POIs, prices, safety.
+ *  This is the "travel essentials" half — runs in parallel with buildExtendedPrompt. */
+function buildCorePrompt(
+  country: Parameters<typeof buildUserPrompt>[0],
+  languageName: string,
+): string {
+  const ctx = buildContextLine(country);
+  return `${ctx}
+Write ALL text in ${languageName}. Return STRICT JSON with these fields:
+
+{
+  "tagline": "vivid one-liner, <= 90 chars",
+  "bestTimeToVisit": "e.g. 'Apr-Jun, Sep-Oct'",
+  "overview": "single paragraph, 120-180 words, factual: geography, history, what it's famous for",
+  "culture": ["5-7 bullets on language, religion, customs, arts"],
+  "unwrittenRules": ["5-7 bullets on etiquette / taboos"],
+  "safetyBrief": "60-100 words: crime risks, areas to avoid, health notes, sober risk assessment",
+  "foods": [{"name":"...","description":"<= 25 words","category":"main|dessert|street|drink"}],
+  "pois": [{"name":"...","description":"<= 25 words","category":"historic|nature|museum|beach|religious|modern","city":"optional"}],
+  "priceEstimate": {"budgetHotelEur":"40-90","midHotelEur":"90-180","luxuryHotelEur":"180-500","flightFromEuEur":"120-400","mealBudgetEur":"8-15","mealMidEur":"20-45","notes":"one sentence"}
+}
+
+Rules: Output ONLY JSON. No backticks. No trailing commas. Be specific and accurate.`;
+}
+
+/** Build the EXTENDED prompt: emergency, crime, animals, quality of life, taxes,
+ *  clothing, internet, disasters, TV, famous people. Runs in parallel with core. */
+function buildExtendedPrompt(
+  country: Parameters<typeof buildUserPrompt>[0],
+  languageName: string,
+): string {
+  const ctx = buildContextLine(country);
+  return `${ctx}
+Write ALL text in ${languageName}. Return STRICT JSON with these fields:
+
+{
+  "emergencyNumbers": {"police":"e.g. 17","ambulance":"e.g. 15","fire":"e.g. 18","general":"universal number or null"},
+  "crimeBrief": "60-90 words: common scams, pickpocket hotspots, areas to avoid at night, safety tip",
+  "dangerousAnimals": [{"name":"...","description":"<= 20 words: where found, what risk"}],
+  "qualityOfLife": "60-90 words: healthcare, education, safety, inequality, work-life balance",
+  "taxes": {"vatRate":"e.g. 20%","corporateTax":"e.g. 25%","incomeTax":"e.g. 0-45% progressive","notes":"one sentence"},
+  "clothingAdvice": "50-80 words: clothing by season, cultural dress considerations, climate gear",
+  "internetQuality": "40-60 words: broadband/mobile speeds, fiber vs rural, 4G/5G, SIM cards for tourists",
+  "naturalDisasterRisk": "50-70 words: seismic activity, tsunami, hurricanes, monsoons, volcanoes. Factual.",
+  "tvChannels": [{"name":"...","type":"public|private|news|sports|entertainment"}],
+  "famousPeople": [{"name":"...","profession":"e.g. footballer, actress, politician"}]
+}
+
+Rules: Output ONLY JSON. No backticks. No trailing commas. 3-5 entries for arrays. Be factual.`;
+}
+
+/** Shared context line for both prompts. */
+function buildContextLine(country: Parameters<typeof buildUserPrompt>[0]): string {
+  const languages = safeParse<Record<string, string>>(country.languagesJson);
+  const currencies = safeParse<Record<string, { name: string; symbol?: string }>>(country.currenciesJson);
+  const langList = languages ? Object.values(languages).slice(0, 5).join(', ') : 'n/a';
+  const curList = currencies
+    ? Object.entries(currencies).map(([c, v]) => `${c} (${v.name})`).slice(0, 3).join(', ')
+    : 'n/a';
+  return `Produce a travel brief for "${country.name}" (official: ${country.officialName ?? country.name}, capital: ${country.capital ?? 'n/a'}, region: ${country.region ?? 'n/a'} / ${country.subregion ?? 'n/a'}, languages: ${langList}, currencies: ${curList}).`;
+}
+
 function safeParse<T>(s: string | null | undefined): T | null {
   if (!s) return null;
   try {
@@ -279,9 +341,14 @@ function validatePayload(p: LlmCountryPayload) {
 }
 
 /**
- * Run LLM call(s) to produce the structured payload for a country.
- * Includes automatic retry with a stricter prompt if the first call produces
- * unparseable JSON. `languageName` = native name (e.g. "Italian").
+ * Run TWO LLM calls IN PARALLEL to produce the full payload:
+ *  - Call A (core): tagline, overview, culture, foods, pois, price — the travel essentials.
+ *  - Call B (extended): emergency, crime, animals, qualityOfLife, taxes, clothing,
+ *    internet, disasterRisk, tvChannels, famousPeople — the extended info.
+ *
+ * Running in parallel halves the total generation time (~25s instead of ~50s).
+ * Each call produces a partial JSON object; we merge them into one payload.
+ * Each call has its own retry-on-bad-JSON logic.
  */
 export async function generateCountryPayload(
   country: {
@@ -297,40 +364,104 @@ export async function generateCountryPayload(
 ): Promise<LlmCountryPayload> {
   const zai = await getZai();
 
+  // Run both LLM calls in parallel.
+  const [coreResult, extResult] = await Promise.allSettled([
+    llmCallWithRetry(zai, country, languageName, 'core'),
+    llmCallWithRetry(zai, country, languageName, 'extended'),
+  ]);
+
+  // If both failed, throw. If one failed, use the other's data + defaults.
+  if (coreResult.status === 'rejected' && extResult.status === 'rejected') {
+    throw new Error(`Both LLM calls failed for ${country.name}`);
+  }
+
+  const core = coreResult.status === 'fulfilled' ? coreResult.value : {} as Partial<LlmCountryPayload>;
+  const ext = extResult.status === 'fulfilled' ? extResult.value : {} as Partial<LlmCountryPayload>;
+
+  // Merge: core provides overview/culture/foods/pois, extended provides the rest.
+  const merged: LlmCountryPayload = {
+    tagline: core.tagline ?? ext.tagline ?? '',
+    bestTimeToVisit: core.bestTimeToVisit ?? ext.bestTimeToVisit ?? '',
+    overview: core.overview ?? ext.overview ?? '',
+    culture: core.culture ?? ext.culture ?? [],
+    unwrittenRules: core.unwrittenRules ?? ext.unwrittenRules ?? [],
+    safetyBrief: core.safetyBrief ?? ext.safetyBrief ?? '',
+    emergencyNumbers: ext.emergencyNumbers ?? core.emergencyNumbers ?? { police: '112', ambulance: '112', fire: '112' },
+    crimeBrief: ext.crimeBrief ?? core.crimeBrief ?? '',
+    dangerousAnimals: ext.dangerousAnimals ?? core.dangerousAnimals ?? [],
+    qualityOfLife: ext.qualityOfLife ?? core.qualityOfLife ?? '',
+    taxes: ext.taxes ?? core.taxes ?? { vatRate: '', corporateTax: '', incomeTax: '', notes: '' },
+    clothingAdvice: ext.clothingAdvice ?? core.clothingAdvice ?? '',
+    internetQuality: ext.internetQuality ?? core.internetQuality ?? '',
+    naturalDisasterRisk: ext.naturalDisasterRisk ?? core.naturalDisasterRisk ?? '',
+    tvChannels: ext.tvChannels ?? core.tvChannels ?? [],
+    famousPeople: ext.famousPeople ?? core.famousPeople ?? [],
+    foods: core.foods ?? ext.foods ?? [],
+    pois: core.pois ?? ext.pois ?? [],
+    priceEstimate: core.priceEstimate ?? ext.priceEstimate ?? {
+      budgetHotelEur: '40-90', midHotelEur: '90-180', luxuryHotelEur: '180-500',
+      flightFromEuEur: '120-400', mealBudgetEur: '8-15', mealMidEur: '20-45', notes: '',
+    },
+  };
+
+  validatePayload(merged);
+  return merged;
+}
+
+/** Make a single LLM call with the appropriate prompt, with JSON retry. */
+async function llmCallWithRetry(
+  zai: Awaited<ReturnType<typeof ZAI.create>>,
+  country: Parameters<typeof buildUserPrompt>[0],
+  languageName: string,
+  which: 'core' | 'extended',
+): Promise<Partial<LlmCountryPayload>> {
+  const prompt = which === 'core' ? buildCorePrompt(country, languageName) : buildExtendedPrompt(country, languageName);
+
   // Attempt 1: standard prompt.
   const completion1 = await zai.chat.completions.create({
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserPrompt(country, languageName) },
+      { role: 'user', content: prompt },
     ],
     thinking: { type: 'disabled' },
   });
   const raw1 = completion1.choices[0]?.message?.content ?? '';
   try {
-    return await parsePayload(raw1);
+    return parsePartialPayload(raw1);
   } catch (e1) {
-    console.warn(`[llm] ${country.name}: first parse failed, retrying:`, (e1 as Error).message);
+    console.warn(`[llm] ${country.name} (${which}): parse failed, retrying:`, (e1 as Error).message);
   }
 
-  // Attempt 2: stricter prompt with explicit JSON reminder.
+  // Attempt 2: stricter prompt.
   const completion2 = await zai.chat.completions.create({
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: buildUserPrompt(country, languageName) },
+      { role: 'user', content: prompt },
       { role: 'assistant', content: raw1 },
       {
         role: 'user',
-        content:
-          'Your previous response was NOT valid JSON. Please regenerate the COMPLETE JSON object. ' +
-          'Rules: (1) Use ONLY straight double quotes ". (2) NO trailing commas. ' +
-          '(3) NO newlines inside string values. (4) Output ONLY the JSON object, nothing else. ' +
-          `(Write all text in ${languageName}.)`,
+        content: 'Your previous response was NOT valid JSON. Regenerate the COMPLETE JSON. ' +
+          'Rules: (1) Use ONLY straight double quotes. (2) NO trailing commas. ' +
+          '(3) NO newlines inside string values. (4) Output ONLY the JSON object.',
       },
     ],
     thinking: { type: 'disabled' },
   });
   const raw2 = completion2.choices[0]?.message?.content ?? '';
-  return parsePayload(raw2); // If this throws, the aggregator handles it.
+  return parsePartialPayload(raw2);
+}
+
+/** Parse a partial JSON payload (from either the core or extended call). */
+function parsePartialPayload(raw: string): Partial<LlmCountryPayload> {
+  const jsonStr = extractJson(raw);
+  try {
+    const p = JSON.parse(jsonStr) as Partial<LlmCountryPayload>;
+    // Sanitize any strings (fix smart quotes, etc.).
+    return p;
+  } catch {
+    const p = JSON.parse(sanitizeJson(jsonStr)) as Partial<LlmCountryPayload>;
+    return p;
+  }
 }
 
 /**

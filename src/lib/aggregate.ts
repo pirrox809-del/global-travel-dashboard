@@ -133,13 +133,18 @@ async function loadStatic(
   if (!country) return null;
 
   const needsGeneration =
-    !country.content || (country.content.contentLanguage ?? 'en') !== locale;
+    !country.content ||
+    (country.content.contentLanguage ?? 'en') !== locale ||
+    // Stale content: generated before the extended fields were added.
+    // If internetQuality is null, the content is from an older prompt version
+    // and needs regeneration to include ALL fields (emergency, crime, TV, etc.).
+    country.content.internetQuality == null;
 
   if (needsGeneration) {
     // Fire-and-forget: start generation in the background, return immediately.
     triggerGeneration(country, locale);
-    // Return what we have (metadata) WITHOUT blocking on LLM content.
-    // content/foods/pois will be null/empty — the frontend shows skeletons.
+    // Return what we have (metadata + old content if exists) WITHOUT blocking.
+    // New fields will be null — the frontend shows skeletons for those cards.
     return { staticData: toDto(country), justGenerated: false, contentGenerating: true };
   }
 
