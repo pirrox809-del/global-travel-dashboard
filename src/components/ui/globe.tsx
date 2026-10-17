@@ -67,16 +67,14 @@ export function Globe({ className }: { className?: string; config?: unknown }) {
             "inset -20px -8px 40px rgba(0,0,0,0.4), inset 8px 4px 25px rgba(120,180,255,0.12), 0 0 50px rgba(80,160,255,0.15)",
         }}
       >
-        {/* World map layer (only if image loaded) */}
+        {/* World map layer (static — no scrolling, no seam) */}
         {mapLoaded && mapUrl ? (
           <div
             className="absolute inset-0"
             style={{
               backgroundImage: `url(${mapUrl})`,
-              backgroundSize: "200% 100%",
-              backgroundRepeat: "repeat-x",
-              backgroundPosition: "0% 50%",
-              animation: "globe-spin 30s linear infinite",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
               opacity: 0.75,
               mixBlendMode: "screen",
             }}
