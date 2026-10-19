@@ -295,3 +295,43 @@ Stage Summary:
 - NO other UI added (no list, no tooltip, no copy buttons) — just the globe + the blinking dot, as the user explicitly requested ("e basta, non aggiungere informazioni e nient'altro").
 - Home screen and language/theme switchers NOT touched (verified by VLM).
 - The full InteractiveGlobeExplorer component was copied to `/components/ui/` as instructed by the task, for future use.
+
+---
+Task ID: 17
+Agent: main (Z.ai Code)
+Task: Add a mini search bar at the beginning of each country's dashboard so users can find a category instantly (e.g. type "weather" and jump to the Weather section) instead of scrolling.
+
+Work Log:
+- Discovered that the `dashboard-search.tsx` file AND the import in dashboard.tsx were both MISSING from the filesystem (same filesystem sync issue that previously lost airplane-cursor.tsx, country-globe-explorer.tsx). Also the `data-card="..."` attributes that the previous DashboardSearch relied on were not present in the current dashboard.tsx — so I had to add them all back too.
+
+Files created/modified:
+1. **`src/components/dashboard/dashboard.tsx`** — added `data-card="..."` attributes to ALL 19 sections so the search component can find them via `document.querySelector('[data-card="..."]')`. The sections are: photos, weather, exchange, advisory, overview, culture, food, globe, emergency, economy, safety, qualityOfLife, clothing, seismic, internet, media, famousPeople. (Food's inner 3-col grid had FoodCard + PoiCard + PriceCard but no separate data-cards — kept as a single "food" wrapper since the user can search "food" / "poi" / "price" / "cost" / "budget" and jump to the same section.)
+2. **`src/components/dashboard/dashboard-search.tsx`** (NEW) — the mini search bar component:
+   - 28px-tall input with magnifying-glass icon on the left, clear (X) button on the right when there's a query
+   - Filters 19 categories by their localized label AND extra keywords (e.g., typing "GDP" matches "Economy", typing "112"/"911" matches "Emergency Numbers", typing "wifi" matches "Internet", typing "where"/"map" matches "Location on Globe")
+   - Dropdown shows matching categories as clickable buttons with an arrow-down icon on the right
+   - Clicking a result smooth-scrolls to that section with a 140px top offset (so the sticky header + country selector + this search bar don't cover the target section)
+   - Briefly highlights the target section with an amber ring (1.5s) so the user sees what was found
+   - Keyboard navigation: ArrowUp/Down to move the highlight, Enter to select, Escape to close
+   - Closes the dropdown when clicking outside (mousedown listener)
+   - "No categories found" message when the query doesn't match anything
+   - Sticky positioning at `top-[108px]` so the bar stays accessible while scrolling through the long dashboard (under the 56px header + 52px country selector bar)
+3. **`src/components/dashboard/dashboard.tsx`** — added `import { DashboardSearch }` and rendered it right after `<CountryHero>` inside a `sticky top-[108px] z-30` wrapper.
+4. **`src/lib/i18n.ts`** — added 23 new keys × 4 locales = 92 new i18n entries: `search.placeholder`, `search.ariaLabel`, `search.clear`, `search.noResults`, and 19 `search.cat.*` keys (one per category). All localized for en, es, it, fr.
+5. Lint fix: initial implementation had `useEffect(() => setHighlightIndex(0), [query])` which triggered the `react-hooks/set-state-in-effect` lint rule. Moved the highlight reset to the `onChange` handler of the input instead (cleaner — no effect, no extra render).
+
+Verification with Agent Browser (3 tests):
+1. **Typing "emer"** → dropdown shows "Emergency Numbers" button → click → smooth-scroll from scrollY=341 to scrollY=2926, Emergency card now at rect.top=140 (just under the sticky header). ✓
+2. **Typing "wea"** → dropdown shows "Weather" button → click (from scrollY=0) → smooth-scroll to scrollY=983, Weather card at rect.top=140. ✓
+3. **Keyboard navigation**: typed "food" → pressed ArrowDown once (highlighted "Food") → pressed Enter → smooth-scroll to scrollY=2048, Food card at rect.top=140. ✓
+
+Home screen intact (verified by VLM): "Yes, this is the home/intro screen featuring a 3D globe with CDN markers (pyramids) and a 'Begin exploration' button." — NOT touched.
+
+Stage Summary:
+- Every country's dashboard now has a mini search bar at the top (sticky under the header + country selector bar).
+- Users can type any category name (or related keyword like "GDP", "wifi", "112", "where") and click/Enter to jump straight to that section — no manual scrolling needed.
+- The target section is briefly highlighted with an amber ring so the user sees what was found.
+- 19 categories are searchable, all with localized labels in en/es/it/fr.
+- Keyboard navigation (ArrowUp/Down + Enter + Escape) works for accessibility.
+- Home screen, language switcher, dark/light mode toggle NOT touched (verified by VLM).
+- Lint clean, no console errors.

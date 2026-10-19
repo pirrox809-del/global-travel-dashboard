@@ -29,6 +29,7 @@ import { SeismicCard } from './seismic-card';
 import { InternetCard } from './internet-card';
 import { MediaCard } from './media-card';
 import { FamousPeopleCard } from './famous-people-card';
+import { DashboardSearch } from './dashboard-search';
 import { DashboardSkeleton } from './skeletons';
 
 /**
@@ -99,96 +100,130 @@ function DashboardContent({
 
       <CountryHero country={country} />
 
+      {/* Mini category search bar — sticky under the header + country
+          selector so it stays accessible while scrolling the dashboard.
+          Type a category name (e.g. "weather", "emergency") and click
+          to jump straight to that section — no manual scrolling needed. */}
+      <div className="sticky top-[108px] z-30 pb-1">
+        <DashboardSearch />
+      </div>
+
       {/* Real photos from Wikipedia — polaroid carousel */}
-      <PhotoCarouselCard photos={dynamic.photos} />
+      <div data-card="photos">
+        <PhotoCarouselCard photos={dynamic.photos} />
+      </div>
 
       {/* Live data row (3 cards) — always available immediately */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <WeatherCard weather={dynamic.weather} />
-        <ExchangeCard exchange={dynamic.exchange} />
-        <AdvisoryCard advisory={dynamic.advisory} />
+        <div data-card="weather"><WeatherCard weather={dynamic.weather} /></div>
+        <div data-card="exchange"><ExchangeCard exchange={dynamic.exchange} /></div>
+        <div data-card="advisory"><AdvisoryCard advisory={dynamic.advisory} /></div>
       </div>
 
       {/* Overview full width */}
-      {hasContent && country.content ? <OverviewCard content={country.content} /> : generating ? <ContentSkeleton height="h-32" /> : null}
+      <div data-card="overview">
+        {hasContent && country.content ? <OverviewCard content={country.content} /> : generating ? <ContentSkeleton height="h-32" /> : null}
+      </div>
 
       {/* Culture + unwritten rules (2 columns) */}
-      {hasContent && country.content ? <CultureCard content={country.content} /> : generating ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <ContentSkeleton height="h-48" />
-          <ContentSkeleton height="h-48" />
-        </div>
-      ) : null}
+      <div data-card="culture">
+        {hasContent && country.content ? <CultureCard content={country.content} /> : generating ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ContentSkeleton height="h-48" />
+            <ContentSkeleton height="h-48" />
+          </div>
+        ) : null}
+      </div>
 
       {/* Food + POI + Price (3 columns) */}
-      {hasContent ? (
-        <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <FoodCard foods={country.foods} />
-          <PoiCard pois={country.pois} />
-          {country.priceEstimate ? <PriceCard estimate={country.priceEstimate} /> : null}
-        </div>
-      ) : generating ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <ContentSkeleton height="h-64" />
-          <ContentSkeleton height="h-64" />
-          <ContentSkeleton height="h-64" />
-        </div>
-      ) : null}
+      <div data-card="food">
+        {hasContent ? (
+          <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <FoodCard foods={country.foods} />
+            <PoiCard pois={country.pois} />
+            {country.priceEstimate ? <PriceCard estimate={country.priceEstimate} /> : null}
+          </div>
+        ) : generating ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ContentSkeleton height="h-64" />
+            <ContentSkeleton height="h-64" />
+            <ContentSkeleton height="h-64" />
+          </div>
+        ) : null}
+      </div>
 
       {/* Interactive globe — shows the country's location as a
           pulsing/blinking amber dot. Centred around the middle of the
           dashboard. No other UI — just the globe + the blinking marker. */}
-      {country.latitude != null && country.longitude != null ? (
-        <div className="flex justify-center py-1">
-          <CountryLocationGlobe
-            lat={country.latitude}
-            lng={country.longitude}
-            countryName={country.name}
-          />
-        </div>
-      ) : null}
+      <div data-card="globe">
+        {country.latitude != null && country.longitude != null ? (
+          <div className="flex justify-center py-1">
+            <CountryLocationGlobe
+              lat={country.latitude}
+              lng={country.longitude}
+              countryName={country.name}
+            />
+          </div>
+        ) : null}
+      </div>
 
       {/* Emergency + Economy + Safety (3 columns) — Economy is always real */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {hasContent && country.content?.emergencyNumbers ? (
-          <EmergencyCard numbers={country.content.emergencyNumbers} />
-        ) : generating ? <ContentSkeleton height="h-40" /> : null}
-        <EconomyCard economy={dynamic.economy} />
-        {hasContent && country.content?.crimeBrief ? (
-          <SafetyCard crimeBrief={country.content.crimeBrief} dangerousAnimals={country.content.dangerousAnimals} />
-        ) : generating ? <ContentSkeleton height="h-40" /> : null}
+        <div data-card="emergency">
+          {hasContent && country.content?.emergencyNumbers ? (
+            <EmergencyCard numbers={country.content.emergencyNumbers} />
+          ) : generating ? <ContentSkeleton height="h-40" /> : null}
+        </div>
+        <div data-card="economy"><EconomyCard economy={dynamic.economy} /></div>
+        <div data-card="safety">
+          {hasContent && country.content?.crimeBrief ? (
+            <SafetyCard crimeBrief={country.content.crimeBrief} dangerousAnimals={country.content.dangerousAnimals} />
+          ) : generating ? <ContentSkeleton height="h-40" /> : null}
+        </div>
       </div>
 
       {/* Quality of life + Clothing (2 columns) */}
       <div className="stagger grid gap-4 md:grid-cols-2">
-        {hasContent && country.content?.qualityOfLife ? (
-          <QualityOfLifeCard qualityOfLife={country.content.qualityOfLife} />
-        ) : generating ? <ContentSkeleton height="h-32" /> : null}
-        {hasContent && country.content?.clothingAdvice ? (
-          <ClothingCard clothingAdvice={country.content.clothingAdvice} taxes={country.content.taxes} />
-        ) : generating ? <ContentSkeleton height="h-32" /> : null}
+        <div data-card="qualityOfLife">
+          {hasContent && country.content?.qualityOfLife ? (
+            <QualityOfLifeCard qualityOfLife={country.content.qualityOfLife} />
+          ) : generating ? <ContentSkeleton height="h-32" /> : null}
+        </div>
+        <div data-card="clothing">
+          {hasContent && country.content?.clothingAdvice ? (
+            <ClothingCard clothingAdvice={country.content.clothingAdvice} taxes={country.content.taxes} />
+          ) : generating ? <ContentSkeleton height="h-32" /> : null}
+        </div>
       </div>
 
       {/* Seismic + Internet + Media (3 columns) — Seismic is always real */}
       <div className="stagger grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {!('error' in dynamic.earthquakes) || country.content?.naturalDisasterRisk ? (
-          <SeismicCard
-            earthquakes={dynamic.earthquakes}
-            naturalDisasterRisk={country.content?.naturalDisasterRisk ?? null}
-          />
-        ) : generating ? <ContentSkeleton height="h-48" /> : null}
-        {hasContent && country.content?.internetQuality ? (
-          <InternetCard internetQuality={country.content.internetQuality} />
-        ) : generating ? <ContentSkeleton height="h-48" /> : null}
-        {hasContent && country.content?.tvChannels?.length ? (
-          <MediaCard channels={country.content.tvChannels} />
-        ) : generating ? <ContentSkeleton height="h-48" /> : null}
+        <div data-card="seismic">
+          {!('error' in dynamic.earthquakes) || country.content?.naturalDisasterRisk ? (
+            <SeismicCard
+              earthquakes={dynamic.earthquakes}
+              naturalDisasterRisk={country.content?.naturalDisasterRisk ?? null}
+            />
+          ) : generating ? <ContentSkeleton height="h-48" /> : null}
+        </div>
+        <div data-card="internet">
+          {hasContent && country.content?.internetQuality ? (
+            <InternetCard internetQuality={country.content.internetQuality} />
+          ) : generating ? <ContentSkeleton height="h-48" /> : null}
+        </div>
+        <div data-card="media">
+          {hasContent && country.content?.tvChannels?.length ? (
+            <MediaCard channels={country.content.tvChannels} />
+          ) : generating ? <ContentSkeleton height="h-48" /> : null}
+        </div>
       </div>
 
       {/* Famous people — full width below */}
-      {hasContent && country.content?.famousPeople?.length ? (
-        <FamousPeopleCard people={country.content.famousPeople} />
-      ) : generating ? <ContentSkeleton height="h-40" /> : null}
+      <div data-card="famousPeople">
+        {hasContent && country.content?.famousPeople?.length ? (
+          <FamousPeopleCard people={country.content.famousPeople} />
+        ) : generating ? <ContentSkeleton height="h-40" /> : null}
+      </div>
 
       {/* Refresh + cache meta — refined glass */}
       <div className="flex items-center justify-between rounded-xl border border-border/50 bg-card/50 px-4 py-2.5 text-xs text-muted-foreground backdrop-blur-xl">
