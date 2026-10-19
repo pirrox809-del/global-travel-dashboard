@@ -382,3 +382,39 @@ Stage Summary:
 - **36px size**: slightly smaller (was 43px).
 - **No drop-shadow filter**: removed the expensive CSS filter that caused re-rasterization lag. Visibility handled by the SVG's dark stroke.
 - Lint clean, no console errors.
+
+---
+Task ID: 19
+Agent: main (Z.ai Code)
+Task: Add the precise live time (hours, minutes, seconds — HH:MM:SS) for each country's timezone in the dashboard. Don't create a dedicated category — show it in the existing hero section.
+
+Work Log:
+- Discovered that the `live-clock.tsx` component file was MISSING from the filesystem (same filesystem sync issue that previously lost airplane-cursor.tsx, country-globe-explorer.tsx, dashboard-search.tsx). The hero.tsx no longer imported any LiveClock component — the hero just had a static timezone chip showing the timezone NAME (e.g. "Europe/Paris") but no live time.
+- Also discovered that `tz-lookup` and `countries-and-timezones` packages were MISSING from node_modules (uninstalled). And the `scripts/backfill-timezones.ts` file was also gone. As a result, the DB had `timezonesJson = null` for ALL 250 countries — so even recreating the LiveClock component would have shown nothing (the `country.timezones` array was empty).
+
+Files recreated/installed:
+1. **`scripts/backfill-timezones.ts`** (NEW) — one-time backfill script that uses `countries-and-timezones` to populate `timezonesJson` for all 250 countries in the DB.
+2. **`src/components/dashboard/live-clock.tsx`** (NEW) — the live clock component:
+   - Shows time in `HH:MM:SS` format (WITH SECONDS, as the user requested)
+   - Updates every 1 second (via `useSyncExternalStore` with a 1000ms interval)
+   - Uses `useSyncExternalStore` for hydration-safe rendering (SSR returns `'--:--:--'`, client returns the live time)
+   - Timezone selection strategy: (0) capital override map for 11 multi-timezone countries (RU→Europe/Moscow, US→America/New_York, etc.), (1) `tzLookup(lat, lng)` geo-lookup for the country's centroid, (2) first IANA zone in the country's list, (3) first UTC-offset string
+   - Renders a glass-card pill (border/50, bg/40, backdrop-blur) with: green Clock icon, monospace bold time, tiny uppercase timezone label below
+3. **`src/components/dashboard/hero.tsx`** — re-added `import { LiveClock } from './live-clock'` and wrapped the hero content in a `flex-col sm:flex-row sm:justify-between` layout so the LiveClock sits prominently in the TOP-RIGHT of the hero card (next to the country name/flag), NOT as a separate category. Only renders when `country.timezones.length > 0`.
+4. **`src/lib/i18n.ts`** — re-added `hero.localTime` key in all 4 locales: en "Local time", es "Hora local", it "Ora locale", fr "Heure locale". (Used for the aria-label of the clock wrapper.)
+5. Installed `countries-and-timezones@3.11.0` and `tz-lookup@6.1.25`.
+6. Ran the backfill script: 247 countries updated with `timezonesJson` populated, 3 skipped (tiny territories not in the package).
+
+Verification with Agent Browser:
+- 🇫🇷 France: `19:32:06 Europe/Paris` — `hasSeconds: true` ✓
+- 🇺🇸 United States: `13:33:50 America/New_York` — capital override applied (would have been a different zone without the override) ✓
+- 🇯🇵 Japan: `02:33:59 Asia/Tokyo` ✓
+- Live seconds update verified: read the time twice 2.5s apart → `02:34:09` → `02:34:12` → `changed: true` ✓
+- VLM confirmed: "live clock displaying time in HH:MM:SS format (e.g., 19:34:51) with a clock icon. Timezone labeled as EUROPE/PARIS."
+
+Stage Summary:
+- Every country's dashboard hero now shows the precise live time in `HH:MM:SS` format (with seconds) for that country's primary timezone.
+- The clock updates every 1 second via `useSyncExternalStore` (hydration-safe, no re-render storms).
+- NOT a separate category — lives in the hero alongside the country name/flag, top-right.
+- Timezone resolution uses capital overrides for 11 multi-timezone countries + geo-lookup for the rest, so the time is always for the most representative zone.
+- Lint clean, no console errors.

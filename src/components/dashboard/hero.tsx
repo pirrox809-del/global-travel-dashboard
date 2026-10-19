@@ -4,6 +4,7 @@ import { CalendarClock, Globe2, Languages, MapPin, Phone, Ruler, Users, Clock, C
 import { Badge } from '@/components/ui/badge';
 import type { CountryStatic } from '@/lib/types';
 import { useLanguage } from '@/components/language-provider';
+import { LiveClock } from './live-clock';
 
 /**
  * Top hero: flag, name, tagline, and a grid of metadata chips.
@@ -27,7 +28,7 @@ export function CountryHero({ country }: { country: CountryStatic }) {
         {country.flagEmoji ?? '🏳️'}
       </div>
 
-      <div className="relative flex flex-col gap-6">
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             {country.flagUrl ? (
@@ -67,6 +68,21 @@ export function CountryHero({ country }: { country: CountryStatic }) {
             </div>
           ) : null}
         </div>
+
+        {/* Live local time — prominent, top-right of the hero.
+            Shows HH:MM:SS (with seconds) in the country's primary
+            timezone. Not a separate category — lives in the hero
+            alongside the country name/flag. */}
+        {country.timezones.length ? (
+          <div aria-label={t('hero.localTime')} className="shrink-0 self-start">
+            <LiveClock
+              timezones={country.timezones}
+              lat={country.latitude}
+              lng={country.longitude}
+              countryCode={country.code}
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* Metadata chips grid */}
