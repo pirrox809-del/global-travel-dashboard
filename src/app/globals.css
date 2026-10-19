@@ -522,3 +522,26 @@
     }
   }
 }
+
+/* Custom airplane cursor — hide the OS default arrow cursor on fine-pointer
+   devices so the small amber airplane (rendered by <AirplaneCursor />) is the
+   ONLY visible cursor inside the site. When the pointer leaves the browser
+   window, the OS cursor returns automatically (the airplane component listens
+   to pointerleave/pointerenter on the document and hides itself).
+
+   Touch / coarse-pointer devices keep their native cursor. */
+@media (pointer: fine) {
+  *,
+  *::before,
+  *::after {
+    cursor: none !important;
+  }
+
+  /* Keep the text I-beam cursor on input/textarea so typing stays usable. */
+  input,
+  textarea,
+  [contenteditable="true"],
+  [contenteditable=""] {
+    cursor: text !important;
+  }
+}
