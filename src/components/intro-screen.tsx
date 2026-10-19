@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useLanguage } from '@/components/language-provider';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
-import { Globe } from '@/components/ui/globe';
+import { GlobeCdn } from '@/components/ui/cobe-globe-cdn';
 
 /**
  * IntroScreen — the landing / hero screen shown on first visit.
@@ -41,14 +41,15 @@ export function IntroScreen({ onEnter }: { onEnter: () => void }) {
 
       {/* Centered hero content */}
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
-        {/* Interactive 3D globe (cobe) — auto-rotates, drag to spin */}
+        {/* Interactive 3D globe (cobe) — auto-rotates, drag to spin,
+            CDN markers + arcs show fake traffic between major cities. */}
         <motion.div
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mb-8 h-48 w-48 sm:h-56 sm:w-56"
+          className="relative mb-8 h-64 w-64 sm:h-80 sm:w-80"
         >
-          <Globe className="!max-w-none" />
+          <GlobeCdn />
         </motion.div>
 
         {/* Badge */}

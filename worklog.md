@@ -220,3 +220,40 @@ Stage Summary:
 - No data precision sacrificed — all real APIs (World Bank, USGS, Open-Meteo, etc.) still fetched in parallel
 - In-memory lock prevents duplicate background generations
 - Skeletons + "Generating" banner give clear UX feedback
+
+---
+Task ID: 15
+Agent: main (Z.ai Code)
+Task: Replace the existing CSS-animated `Globe` component on the home/intro screen with the new `GlobeCdn` (cobe-based WebGL globe with CDN markers + arcs + traffic counter).
+
+Work Log:
+- Discovered the home screen was using `Globe` from `@/components/ui/globe` — a CSS-based rotating globe (background-position scroll on a flat equirectangular world map). The user wanted this replaced with the new cobe-based 3D globe that has markers, arcs, and a "traffic counter" UI.
+- Installed `cobe` package (v2.0.1) — a lightweight WebGL globe library (~30KB, zero deps).
+- Created `src/components/ui/cobe-globe-cdn.tsx` with the exact provided code — no modifications. The component:
+  - Renders a WebGL globe via `createGlobe` from cobe
+  - Has 10 default CDN markers at major world airports (iad, sfo, cdg, hnd, syd, gru, sin, arn, dub, bom)
+  - Has 6 arcs connecting them (e.g., iad→cdg, sfo→hnd, cdg→sin)
+  - Spinning pyramids above each marker (CSS 3D transform animation)
+  - Traffic counter overlay (e.g., "420k req/s") above each arc — updates every 250ms with simulated random fluctuation
+  - Drag-to-rotate interaction (pointerdown/move/up with phi/theta offset tracking)
+  - Bright white base color, black markers, light cream glow — stands out beautifully against the dark amber NeuralNoise backdrop
+  - ResizeObserver + delayed init to handle SSR + dynamic container sizing
+  - CSS Anchor Positioning (`positionAnchor: --cobe-${id}`) for the marker/traffic overlays — modern browser feature
+- Updated `src/components/intro-screen.tsx`:
+  - Replaced `import { Globe } from '@/components/ui/globe'` → `import { GlobeCdn } from '@/components/ui/cobe-globe-cdn'`
+  - Replaced `<Globe className="!max-w-none" />` → `<GlobeCdn />`
+  - Bumped the container size from `h-48 w-48 sm:h-56 sm:w-56` → `h-64 w-64 sm:h-80 sm:w-80` (the new globe needs more space for the markers + traffic counter overlays to be visible without clipping)
+- Updated `src/components/dashboard-app.tsx` EmptyState (the post-intro landing screen shown when no country is selected):
+  - Same swap: `Globe` → `GlobeCdn`, same size bump
+- Also noticed during this work that `AirplaneCursor` import was missing from `dashboard-app.tsx` (filesystem sync issue — the file had been lost between sessions). Re-added both `import { AirplaneCursor } from '@/components/ui/airplane-cursor'` AND `<AirplaneCursor />` at the root level (alongside NeuralNoise) — and recreated the missing `airplane-cursor.tsx` file with the full final optimized version (43px, position in pointermove, rAF pauses after 200ms idle).
+- Lint: `bun run lint` clean (no errors, no warnings).
+- VLM (z-ai vision) verification on the home screen: "3D globe visible with visible continents (North and South America), markers shaped like pyramids, and arcs connecting the cities. The design is bright and detailed, using a clean white and dotted aesthetic against a soft background."
+
+Stage Summary:
+- The home/intro screen now shows the new cobe-based 3D globe with CDN markers (10 airports), 6 arcs between them, spinning pyramids above each marker, and a live-updating traffic counter ("Xk req/s") above each arc.
+- The previous CSS-animated flat equirectangular-projection globe has been completely replaced.
+- The new globe uses WebGL (cobe) for a true 3D rotating sphere with realistic lighting (diffuse: 1.5, dark: 0 = bright mode).
+- Bright white base + black markers + light cream glow stands out beautifully against the dark amber NeuralNoise backdrop.
+- Drag interaction preserved — user can spin the globe manually.
+- Airplane cursor restored (was missing from filesystem).
+- Lint clean, no console errors, VLM-verified rendering.

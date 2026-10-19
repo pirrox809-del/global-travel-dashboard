@@ -9,8 +9,9 @@ import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
+import { AirplaneCursor } from '@/components/ui/airplane-cursor';
 import { IntroScreen } from '@/components/intro-screen';
-import { Globe } from '@/components/ui/globe';
+import { GlobeCdn } from '@/components/ui/cobe-globe-cdn';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useT } from '@/components/language-provider';
@@ -91,6 +92,11 @@ function DashboardAppInner() {
           Rendered once at the root so it persists across the intro→dashboard
           transition (no shader restart flicker). */}
       <NeuralNoise color={[0.95, 0.5, 0.18]} opacity={0.55} speed={0.0008} />
+
+      {/* Custom airplane cursor — replaces the default OS arrow cursor
+          with a small amber airplane that follows the pointer and
+          rotates to face the direction of movement. */}
+      <AirplaneCursor />
 
       <AnimatePresence mode="wait">
         {!entered ? (
@@ -177,14 +183,14 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="relative mx-auto flex min-h-[calc(100vh-220px)] max-w-2xl flex-col items-center justify-center py-10 text-center"
     >
-      {/* Interactive 3D globe */}
+      {/* Interactive 3D globe (cobe) — CDN markers + arcs */}
       <motion.div
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mb-8 h-48 w-48 sm:h-56 sm:w-56"
+        className="relative mb-8 h-64 w-64 sm:h-80 sm:w-80"
       >
-        <Globe className="!max-w-none" />
+        <GlobeCdn />
       </motion.div>
 
       <Badge variant="outline" className="mb-4 gap-1.5 bg-background/60 backdrop-blur-md">
