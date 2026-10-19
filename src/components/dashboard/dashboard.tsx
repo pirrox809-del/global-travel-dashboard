@@ -15,6 +15,7 @@ import { ExchangeCard } from './exchange-card';
 import { AdvisoryCard } from './advisory-card';
 import { OverviewCard } from './overview-card';
 import { CultureCard } from './culture-card';
+import { CountryLocationGlobe } from './country-location-globe';
 import { FoodCard } from './food-card';
 import { PoiCard } from './poi-card';
 import { PriceCard } from './price-card';
@@ -131,6 +132,19 @@ function DashboardContent({
           <ContentSkeleton height="h-64" />
           <ContentSkeleton height="h-64" />
           <ContentSkeleton height="h-64" />
+        </div>
+      ) : null}
+
+      {/* Interactive globe — shows the country's location as a
+          pulsing/blinking amber dot. Centred around the middle of the
+          dashboard. No other UI — just the globe + the blinking marker. */}
+      {country.latitude != null && country.longitude != null ? (
+        <div className="flex justify-center py-1">
+          <CountryLocationGlobe
+            lat={country.latitude}
+            lng={country.longitude}
+            countryName={country.name}
+          />
         </div>
       ) : null}
 

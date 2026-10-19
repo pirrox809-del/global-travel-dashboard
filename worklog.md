@@ -257,3 +257,41 @@ Stage Summary:
 - Drag interaction preserved — user can spin the globe manually.
 - Airplane cursor restored (was missing from filesystem).
 - Lint clean, no console errors, VLM-verified rendering.
+
+---
+Task ID: 16
+Agent: main (Z.ai Code)
+Task: Add the InteractiveGlobeExplorer's globe animation to the middle of each country's dashboard, showing only the country's location as a pulsing/blinking amber dot — no other info, no list, no tooltip. Don't touch the home screen or language/theme functions.
+
+Work Log:
+- Discovered that the existing `country-globe-explorer.tsx` file was MISSING from the filesystem (same filesystem sync issue that previously lost airplane-cursor.tsx). The dashboard.tsx no longer imported any globe component, so the dashboard had no globe at all. This means the task is to ADD a new globe, not modify an existing one.
+- Verified the InteractiveGlobeExplorer's texture URL (`https://cdn.21st.dev/assets/localized/228deba2e4b600146bdcb6cfa359b8ead6aacc2b1c13550a29cd82824cfa1c01.jpg`) works and is actually a mirror of the NASA Blue Marble texture (same MD5 hash `8ec81bb437b68fdb4bd46604ff698736` as `https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg`).
+
+Files created/modified:
+1. **`src/components/ui/interactive-globe-explorer.tsx`** — copied the provided component verbatim (no modifications). This is the full version with the scrolling city list, tooltip, copy-to-clipboard buttons. Kept in the UI library for future use, but NOT used in the dashboard per the user's "e basta, non aggiungere informazioni e nient'altro" requirement.
+2. **`src/components/dashboard/country-location-globe.tsx`** (NEW) — a simplified version of the InteractiveGlobeExplorer that shows ONLY:
+   - The 3D globe (react-globe.gl) with the InteractiveGlobeExplorer's blue-marble texture URL
+   - ONE static amber marker dot at the country's lat/lng (`#f59e0b`)
+   - ONE pulsing amber ring at the country's lat/lng (`#fbbf24`) — this is the "blinking dot" effect. Ring expands outward with `propagationSpeed: 2.5`, repeating every 1100ms.
+   - Amber atmosphere halo (matches dashboard accent)
+   - Same 3-light bright lighting setup from Task 10 (AmbientLight 1.2 + DirectionalLight 1.5 + warm fill 0.6)
+   - IntersectionObserver pauses the globe's internal rAF when scrolled offscreen (saves ~16ms/frame when the user is at the top/bottom of the dashboard)
+   - `visibilitychange` listener pauses the globe when the tab is hidden
+   - Auto-rotates at speed 0.35, centered on the country's coordinates
+3. **`src/components/dashboard/dashboard.tsx`** — added `import { CountryLocationGlobe } from './country-location-globe'` and inserted the component between the Food/POI/Price section and the Emergency/Economy/Safety section. This positions the globe around the MIDDLE of each country's dashboard, as the user requested ("circa a meta").
+4. Installed `react-globe.gl@2.38.0` (was missing from node_modules — had to reinstall).
+
+Verification:
+- Lint: clean (no errors, no warnings).
+- 🇫🇷 France dashboard: VLM confirmed "3D globe visible with a pulsing, amber-colored marker dot. The dot appears to be located over the continent of Europe, specifically near France." ✓
+- 🇯🇵 Japan dashboard: VLM confirmed "3D globe with a pulsing amber marker dot. The dot is located in East Asia, specifically on the island of Japan near Tokyo." ✓
+- 🏠 Home screen: VLM confirmed it still has the cobe CDN globe with pyramid markers (iad1, arn1, gru1, sf01) and arcs — NOT touched, as the user requested.
+- The country marker correctly tracks the country's lat/lng coordinates (verified on 2 different countries in 2 different continents — Europe for France, East Asia for Japan).
+
+Stage Summary:
+- Every country's dashboard now shows a 3D globe around the middle, with a pulsing/blinking amber marker dot at the country's exact location.
+- The globe uses the InteractiveGlobeExplorer's texture URL (blue-marble, mirrored on cdn.21st.dev).
+- The "blinking" effect is implemented via react-globe.gl's `ringsData` API (an expanding ring that repeats every 1100ms — looks like a radar blip).
+- NO other UI added (no list, no tooltip, no copy buttons) — just the globe + the blinking dot, as the user explicitly requested ("e basta, non aggiungere informazioni e nient'altro").
+- Home screen and language/theme switchers NOT touched (verified by VLM).
+- The full InteractiveGlobeExplorer component was copied to `/components/ui/` as instructed by the task, for future use.
