@@ -461,3 +461,88 @@ Stage Summary:
 - When autoplay is toggled off, the slider is disabled (grayed out) to indicate it's not active.
 - 16 new i18n entries (4 keys × 4 locales).
 - Lint clean, no console errors.
+
+---
+Task ID: 21
+Agent: main (Z.ai Code)
+Task: Fix "AI slop" texts — the home/intro titles and other user-facing texts were too obviously AI-generated (flowery/poetic language, corporate jargon like "aggregated", explicit "AI-curated" mentions). Make them more natural and human-sounding. Don't touch any components or functionality — only text values.
+
+Changes made (text-only, across all 4 locales en/es/it/fr):
+
+1. **`intro.subtitle`** — simplified from poetic to direct:
+   - en: "Every country on Earth, in a single glance." → "Every country, one page."
+   - es: "Cada país de la Tierra, en una sola mirada." → "Cada país, un panel."
+   - it: "Ogni paese della Terra, in un solo sguardo." → "Ogni paese, una dashboard."
+   - fr: "Chaque pays de la Terre, en un seul regard." → "Chaque pays, un tableau de bord."
+
+2. **`intro.body`** — removed "AI-curated" and "aggregated", simplified:
+   - en: "Live weather, exchange rates, travel advisories, and AI-curated culture — aggregated for any of the 189 countries." → "Weather, exchange rates, advisories, and local info for 189 countries."
+   - es: removed "cultura curada con IA" and "para cualquiera de los 189 países" → "Clima, tipos de cambio, avisos e info local para 189 países."
+   - it: removed "cultura curata con IA" and "aggregati per ciascuno" → "Meteo, cambi, avvisi e info locali per 189 paesi."
+   - fr: removed "culture curatée par IA" and "agrégés pour chacun" → "Météo, taux de change, avis et infos locales pour 189 pays."
+
+3. **`intro.cta`** — simpler, less formal:
+   - en: "Begin exploration" → "Get started"
+   - es: "Comenzar a explorar" → "Empezar"
+   - it: "Inizia a esplorare" → "Inizia"
+   - fr: "Commencer l'exploration" → "Commencer"
+
+4. **`intro.feat.curated.title`** — removed "AI" prefix:
+   - en: "AI-Curated" → "Local Info"
+   - es: "Curado con IA" → "Info local"
+   - it: "Curato con IA" → "Info locali"
+   - fr: "Curaté par IA" → "Infos locales"
+
+5. **`intro.feat.curated.desc`** — more practical, less flowery:
+   - en: "Culture, food & must-see places" → "Food, places & practical tips"
+   - es: "Cultura, comida y lugares imperdibles" → "Comida, lugares y consejos prácticos"
+   - it: "Cultura, cibi e luoghi imperdibili" → "Cibi, luoghi e consigli pratici"
+   - fr: "Culture, cuisine et lieux incontournables" → "Cuisine, lieux et conseils pratiques"
+
+6. **`empty.body`** — same fixes as `intro.body` (removed "AI-curated" and "aggregated", simplified).
+
+7. **`app.aiCurated`** — removed "AI" prefix:
+   - en: "AI-curated" → "curated"
+   - es: "Curado con IA" → "curado"
+   - it: "Curato con IA" → "curato"
+   - fr: "Curaté par IA" → "curaté"
+
+8. **`source.aiCurated`** — removed "ai ·" prefix (now same as `source.curated`):
+   - en: "ai · curated" → "curated"
+   - es: "ia · curado" → "curado"
+   - it: "ia · curato" → "curato"
+   - fr: "ia · curaté" → "curaté"
+
+9. **`dash.justCurated.title`** — less AI-ish:
+   - en: "Just curated for you" → "Just compiled"
+   - es: "Recién curado para ti" → "Recién compilado"
+   - it: "Appena curato per te" → "Appena compilato"
+   - fr: "Vient d'être curaté pour vous" → "Vient d'être compilé"
+
+10. **`dash.justCurated.body`** — removed "generated on-the-fly", simplified:
+    - en: "This country's travel brief was generated on-the-fly and cached..." → "This country's info was just compiled and cached. Future visits will be instant."
+    - Similar simplifications for es/it/fr.
+
+11. **Generating banner** (hardcoded in `dashboard.tsx` line 86):
+    - Before: "Live data is ready below. The AI-curated content (culture, food, safety, etc.) is being generated and will appear automatically in ~15s."
+    - After: "Live data is ready below. Local info (culture, food, safety, etc.) is being compiled and will appear automatically in ~15s."
+
+12. **Meta description** (`layout.tsx`):
+    - Before: "Pick any of 189 countries and get live weather, ECB exchange rates, US State Dept travel advisories, plus AI-curated culture, food and must-see places — aggregated in a single dashboard."
+    - After: "Weather, exchange rates, travel advisories, and local info for 189 countries — all in one dashboard."
+    - Also removed "AI" from keywords array.
+
+Verification:
+- Lint: clean.
+- Agent Browser check on the home screen: `aiCuratedRemaining: 0` — NO more "AI-curated" mentions anywhere on the page.
+- All new texts verified present: subtitle ✓, body ✓, CTA ✓, curated feature ✓.
+- No components or functionality touched — only text values in i18n + 2 hardcoded strings.
+
+Stage Summary:
+- All user-facing texts are now more natural and direct.
+- Removed explicit "AI" mentions from titles, subtitles, body texts, feature labels, source badges, and meta description.
+- Removed flowery/poetic language ("Every country on Earth, in a single glance" → "Every country, one page").
+- Removed corporate jargon ("aggregated", "generated on-the-fly").
+- Simpler CTA ("Begin exploration" → "Get started").
+- The site still uses AI behind the scenes (for content generation), but doesn't flaunt it in every label.
+- Lint clean, no components touched.

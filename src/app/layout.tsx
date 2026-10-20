@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Global Travel Dashboard — 189 countries, one view",
   description:
-    "Pick any of 189 countries and get live weather, ECB exchange rates, US State Dept travel advisories, plus AI-curated culture, food and must-see places — aggregated in a single dashboard.",
-  keywords: ["travel", "dashboard", "countries", "weather", "exchange rates", "travel advisory", "AI"],
+    "Weather, exchange rates, travel advisories, and local info for 189 countries — all in one dashboard.",
+  keywords: ["travel", "dashboard", "countries", "weather", "exchange rates", "travel advisory"],
   authors: [{ name: "Global Travel Dashboard" }],
 };
 

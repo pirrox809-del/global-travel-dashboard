@@ -83,7 +83,7 @@ function DashboardContent({
             Generating travel brief…
           </AlertTitle>
           <AlertDescription className="text-xs">
-            Live data is ready below. The AI-curated content (culture, food, safety, etc.) is being generated and will appear automatically in ~15s.
+            Live data is ready below. Local info (culture, food, safety, etc.) is being compiled and will appear automatically in ~15s.
           </AlertDescription>
         </Alert>
       ) : meta.staticContentGenerated ? (
