@@ -116,6 +116,11 @@ const MESSAGES = {
     'hero.timezone': 'Timezone',
     'hero.bestTime': 'Best time to visit: {value}',
     'hero.localTime': 'Local time',
+    // Photo carousel auto-play controls
+    'photos.autoplay.label': 'Auto-play',
+    'photos.autoplay.play': 'Start auto-play',
+    'photos.autoplay.pause': 'Pause auto-play',
+    'photos.autoplay.speed': 'Auto-play speed',
     // Card titles
     'card.weather': 'Current Weather',
     'card.exchange': 'Exchange Rate',
@@ -286,6 +291,11 @@ const MESSAGES = {
     'hero.timezone': 'Zona horaria',
     'hero.bestTime': 'Mejor época: {value}',
     'hero.localTime': 'Hora local',
+    // Controles de reproducción automática del carrusel de fotos
+    'photos.autoplay.label': 'Reproducción automática',
+    'photos.autoplay.play': 'Iniciar reproducción automática',
+    'photos.autoplay.pause': 'Pausar reproducción automática',
+    'photos.autoplay.speed': 'Velocidad de reproducción automática',
     'card.weather': 'Clima actual',
     'card.exchange': 'Tipo de cambio',
     'card.advisory': 'Aviso de viaje',
@@ -447,6 +457,11 @@ const MESSAGES = {
     'hero.timezone': 'Fuso orario',
     'hero.bestTime': 'Periodo migliore: {value}',
     'hero.localTime': 'Ora locale',
+    // Controlli riproduzione automatica del carosello foto
+    'photos.autoplay.label': 'Riproduzione automatica',
+    'photos.autoplay.play': 'Avvia riproduzione automatica',
+    'photos.autoplay.pause': 'Metti in pausa riproduzione automatica',
+    'photos.autoplay.speed': 'Velocità riproduzione automatica',
     'card.weather': 'Meteo attuale',
     'card.exchange': 'Cambio valuta',
     'card.advisory': 'Avviso di viaggio',
@@ -608,6 +623,11 @@ const MESSAGES = {
     'hero.timezone': 'Fuseau horaire',
     'hero.bestTime': 'Meilleure période : {value}',
     'hero.localTime': 'Heure locale',
+    // Commandes de lecture automatique du carrousel de photos
+    'photos.autoplay.label': 'Lecture automatique',
+    'photos.autoplay.play': 'Démarrer la lecture automatique',
+    'photos.autoplay.pause': 'Mettre en pause la lecture automatique',
+    'photos.autoplay.speed': 'Vitesse de lecture automatique',
     'card.weather': 'Météo actuelle',
     'card.exchange': 'Taux de change',
     'card.advisory': 'Avis de voyage',

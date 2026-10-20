@@ -418,3 +418,46 @@ Stage Summary:
 - NOT a separate category — lives in the hero alongside the country name/flag, top-right.
 - Timezone resolution uses capital overrides for 11 multi-timezone countries + geo-lookup for the rest, so the time is always for the most representative zone.
 - Lint clean, no console errors.
+
+---
+Task ID: 20
+Agent: main (Z.ai Code)
+Task: Add auto-play option + speed control bar to the photo carousel in every country's dashboard. Users can toggle auto-rotation on/off and adjust the scroll speed via a slider — always in the same spot.
+
+Work Log:
+- Discovered that the `PolaroidLineCarousel` component already supports an `autoplay` prop (interval in ms). When set to 0 or undefined, autoplay is disabled. When set to a number, a `setInterval` rotates to the next slide every N ms (with cooldown after user interaction). The `autoplay` value is in the useEffect deps, so changing it dynamically clears the old interval and starts a new one — no code changes needed in the carousel component itself.
+- The `PhotoCarouselCard` was already passing `autoplay={6000}` (6s) but had NO visible controls for the user to toggle or adjust the speed. Added both.
+
+Files modified:
+1. **`src/components/dashboard/photo-carousel-card.tsx`** — added two pieces of state + a control bar UI:
+   - `autoplayEnabled` (boolean, default `true`) — toggles auto-rotation on/off
+   - `autoplaySpeed` (number, default `6000` ms) — the interval between auto-rotations
+   - Passes `autoplay={autoplayEnabled ? autoplaySpeed : 0}` to `PolaroidLineCarousel` — when disabled, passes 0 which makes the carousel's useEffect return early (no interval created).
+   - **Control bar** (below the carousel, inside the same rounded card): a glass-card bar with:
+     - **Play/Pause toggle button**: 32×32px button with Lucide `Pause` icon (when playing) or `Play` icon (when paused). `aria-pressed` reflects the state, `aria-label` switches between "Start auto-play" / "Pause auto-play".
+     - **"Auto-play" label** (localized).
+     - **Speed slider**: HTML range input (min=2000ms, max=12000ms, step=1000ms). Uses `accent-amber-500` to match the dashboard accent. Disabled (grayed out) when autoplay is off.
+     - **Gauge icon** (Lucide) next to the slider.
+     - **Speed value display**: shows the current speed in seconds (e.g., "6s", "3s", "12s") in monospace tabular-nums.
+   - The control bar is in the same spot for every country's dashboard (below the carousel, inside the same card) — as requested ("sempre nello stesso punto").
+2. **`src/lib/i18n.ts`** — added 4 new keys × 4 locales = 16 entries:
+   - `photos.autoplay.label`: en "Auto-play", es "Reproducción automática", it "Riproduzione automatica", fr "Lecture automatique"
+   - `photos.autoplay.play`: en "Start auto-play", es "Iniciar reproducción automática", it "Avvia riproduzione automatica", fr "Démarrer la lecture automatique"
+   - `photos.autoplay.pause`: en "Pause auto-play", es "Pausar reproducción automática", it "Metti in pausa riproduzione automatica", fr "Mettre en pause la lecture automatique"
+   - `photos.autoplay.speed`: en "Auto-play speed", es "Velocidad de reproducción automática", it "Velocità riproduzione automatica", fr "Vitesse de lecture automatique"
+
+Verification with Agent Browser:
+- **Control bar rendering**: verified the play/pause button exists with `aria-pressed="true"` (autoplay ON by default), aria-label "Pause auto-play". Slider exists with value=6000, min=2000, max=12000. Speed label shows "6s".
+- **Toggle test**: clicked the play/pause button → `aria-pressed` changed from `true` to `false`, aria-label changed to "Start auto-play", slider became `disabled=true` (correctly grayed out when autoplay is off). ✓
+- **Speed change test**: re-enabled autoplay, then changed the slider to 3000ms via React-compatible value setter + input event dispatch → slider value updated to 3000, speed display updated to "3s". ✓
+- **VLM check**: confirmed "control bar at the bottom of the photo carousel section that includes a play/pause toggle button, a horizontal speed slider, and a speed value of '6s'".
+
+Stage Summary:
+- Every country's dashboard now has a photo carousel with:
+  - **Auto-play toggle** (play/pause button) — turns automatic photo rotation on/off
+  - **Speed slider** — adjusts the rotation interval from 2s (fast) to 12s (slow), in 1s increments
+  - The control bar is always in the same spot (below the carousel, inside the card) for all countries
+- Auto-play is ON by default at 6s intervals. When the user interacts with the carousel (drags, clicks arrows, clicks a photo), the carousel's existing cooldown logic pauses auto-rotation for one interval — then resumes.
+- When autoplay is toggled off, the slider is disabled (grayed out) to indicate it's not active.
+- 16 new i18n entries (4 keys × 4 locales).
+- Lint clean, no console errors.
