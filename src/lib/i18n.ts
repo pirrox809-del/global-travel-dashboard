@@ -176,10 +176,11 @@ export function getLLMLanguageName(locale: string): string {
   return LOCALE_NATIVE[locale] ?? locale;
 }
 
-type Dict = typeof MESSAGES.en;
+type Dict = Record<string, string>;
 
-const MESSAGES = {
-  en: {
+/** Exported so the /api/i18n/[locale] endpoint can use it as the
+ *  source for LLM translation into other languages. */
+export const MESSAGES_EN: Dict = {
     // Header / chrome
     'app.title': 'Global Travel Dashboard',
     'app.subtitle': '189 countries · live weather, FX & advisories',
@@ -358,7 +359,13 @@ const MESSAGES = {
     // Footer
     'footer.sources': 'Data sources:',
     'footer.disclaimer': 'Hotel & flight ranges are LLM-generated estimates · not live booking data.',
-  },
+};
+
+/** Full translations for the 4 manually-translated locales.
+ *  For all other locales, the /api/i18n/[locale] endpoint generates
+ *  translations on-the-fly via the LLM and caches them. */
+const MESSAGES: Record<string, Dict> = {
+  en: MESSAGES_EN,
   es: {
     'app.title': 'Panel de Viajes Global',
     'app.subtitle': '189 países · clima, divisas y avisos en vivo',
@@ -857,7 +864,17 @@ const MESSAGES = {
     'footer.sources': 'Sources de données :',
     'footer.disclaimer': 'Les fourchettes d’hôtels et de vols sont des estimations IA · pas des données de réservation en direct.',
   },
-} satisfies Record<Locale, Record<string, string>>;
+};
+
+/** Runtime cache for LLM-translated locale strings. Populated by the
+ *  language provider when it fetches /api/i18n/[locale]. */
+const runtimeMessages: Record<string, Dict> = {};
+
+/** Register a runtime-translated locale (called by the language provider
+ *  after fetching from /api/i18n/[locale]). */
+export function registerRuntimeLocale(locale: string, messages: Dict) {
+  runtimeMessages[locale] = messages;
+}
 
 export type MessageKey = keyof Dict;
 
@@ -914,7 +931,10 @@ export function formatTime(timeStr: string, locale: Locale): string {
  * visible during dev rather than silently empty).
  */
 export function translate(locale: Locale, key: MessageKey, params?: Record<string, string | number>): string {
-  let str = MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
+  let str = runtimeMessages[locale]?.[key]
+    ?? MESSAGES[locale]?.[key]
+    ?? MESSAGES.en[key]
+    ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       str = str.replace(`{${k}}`, String(v));

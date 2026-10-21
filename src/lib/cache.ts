@@ -163,4 +163,5 @@ export const TTL = {
   weatherForecast: 60 * 60 * 2,
   exchangeRate: 60 * 60 * 6,
   advisory: 60 * 60 * 12,
+  i18n: 60 * 60 * 24 * 30, // 30 days — translations don't change often
 } as const;
