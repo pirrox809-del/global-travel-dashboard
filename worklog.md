@@ -546,3 +546,50 @@ Stage Summary:
 - Simpler CTA ("Begin exploration" → "Get started").
 - The site still uses AI behind the scenes (for content generation), but doesn't flaunt it in every label.
 - Lint clean, no components touched.
+
+---
+Task ID: 22
+Agent: main (Z.ai Code)
+Task: Add ALL the world's major languages to the site — make it completely universal. Currently only 4 languages (en/es/it/fr) were supported.
+
+Work Log:
+- Expanded the language system from 4 languages to **108 languages** covering all major world languages across 6 continents.
+
+Changes made:
+
+1. **`src/lib/i18n.ts`**:
+   - Changed `Locale` type from `'en' | 'es' | 'it' | 'fr'` (4 literal types) to `string` — accepts any language code.
+   - Expanded `LOCALES` array from 4 entries to **108 entries**, organized by region:
+     - **Europe (36)**: English, Spanish, Italian, French, German, Portuguese, Russian, Dutch, Polish, Ukrainian, Romanian, Czech, Hungarian, Swedish, Danish, Finnish, Norwegian, Slovak, Bulgarian, Croatian, Serbian, Greek, Catalan, Basque, Galician, Lithuanian, Latvian, Estonian, Slovenian, Albanian, Belarusian, Bosnian, Icelandic, Irish, Macedonian, Maltese
+     - **Asia (40)**: Chinese, Hindi, Arabic, Bengali, Japanese, Korean, Turkish, Vietnamese, Thai, Indonesian, Malay, Persian, Urdu, Punjabi, Marathi, Telugu, Tamil, Gujarati, Kannada, Malayalam, Sinhala, Nepali, Azerbaijani, Kazakh, Uzbek, Kyrgyz, Tajik, Mongolian, Khmer, Lao, Burmese, Hebrew, Kurdish, Pashto, Armenian, Georgian, Javanese, Sundanese, Filipino, Assamese, Odia, Sindhi
+     - **Africa (22)**: Swahili, Amharic, Hausa, Yoruba, Igbo, Zulu, Xhosa, Afrikaans, Somali, Oromo, Wolof, Malagasy, Shona, Chichewa, Sotho, Tswana, Kinyarwanda, Lingala, Akan, Ewe, Bambara
+     - **Americas (3)**: Quechua, Guarani, Haitian Creole
+     - **Oceania (2)**: Maori, Hawaiian
+     - **Middle East / Central Asia (4)**: Turkmen, Uyghur, Luxembourgish, Faroese
+   - Each entry has: `code` (ISO 639-1), `label` (native name/endonym), `flag` (country emoji).
+   - Expanded `LOCALE_NATIVE` map from 4 entries to **108 entries** — maps each language code to its English name (e.g., `zh: 'Chinese'`, `hi: 'Hindi'`, `ar: 'Arabic'`, `sw: 'Swahili'`). Used by the LLM prompt ("Write in [Language]").
+   - Added `getLLMLanguageName(locale)` function — returns the English name for any locale code, falling back to the code itself if not in the map.
+   - Updated `intro.badge` text in all 4 locales: "4 languages" → "100+ languages" (en), "100+ idiomas" (es), "100+ lingue" (it), "100+ langues" (fr).
+   - The `translate()` function already had English fallback built in — `MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key` — so for the 104 languages without explicit translations, all UI strings (button labels, card titles, etc.) automatically fall back to English. The LLM-generated content (overview, culture, food, etc.) is generated in the user's selected language via the `getLLMLanguageName` function.
+
+2. **`src/components/language-switcher.tsx`**:
+   - Added `CommandInput` (search field) at the top of the language dropdown — the user can search by typing any part of the language name (native or English) or the language code.
+   - The `value` attribute of each `CommandItem` now includes THREE search terms: `${l.label} ${l.code} ${LOCALE_NATIVE[l.code]}` — so searching "japanese" (English name) finds "日本語" (native name), searching "中文" finds Chinese, searching "ar" finds Arabic.
+   - Widened the popover from `w-44` to `w-64`.
+   - Added `max-h-72 overflow-y-auto` on the `CommandList` so the 108-language list scrolls.
+   - Added `CommandEmpty` "No language found." for when the search yields no results.
+
+Verification with Agent Browser:
+- Opened the language switcher: **108 languages** listed with flag + native name. ✓
+- Search test 1: typed "japanese" → filtered to 1 result (🇯🇵 日本語). ✓
+- Search test 2: typed "中文" (Chinese native name) → filtered to 1 result (🇨🇳 中文). ✓
+- Switch test: clicked Japanese → language button now shows "JA". UI strings fall back to English (e.g., "Get started" CTA still in English). ✓
+- Badge: "100+ languages" confirmed on the intro screen. ✓
+
+Stage Summary:
+- The site now supports **108 languages** — covering all major world languages across Europe, Asia, Africa, the Americas, and Oceania.
+- For the 4 fully-translated languages (en, es, it, fr), all UI strings + LLM content are in the user's language.
+- For the other 104 languages, UI strings fall back to English, but the LLM-generated content (overview, culture, food, safety, etc.) is generated in the user's selected language — making the country dashboards truly multilingual.
+- The language switcher has a search field so users can quickly find any language by its English name, native name, or code.
+- The `intro.badge` now says "100+ languages" instead of "4 languages".
+- Lint clean, no console errors.
