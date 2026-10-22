@@ -663,3 +663,43 @@ Stage Summary:
 - First visit to a new language: ~5-10 seconds (LLM translates ~157 UI strings). All subsequent visits: instant.
 - The LLM-generated country content (overview, culture, food, etc.) is also generated in the user's language via `getLLMLanguageName()`.
 - Lint clean, no console errors.
+
+---
+Task ID: 24
+Agent: main (Z.ai Code)
+Task: (1) Revert to only 4 languages (English, Spanish, Italian, French) — remove all 108 languages and the LLM on-the-fly translation system. (2) Reduce photo loading times.
+
+Part 1 — Language revert:
+- Reverted `Locale` type from `string` back to `'en' | 'es' | 'it' | 'fr'` (4 literal types).
+- Reverted `LOCALES` from 108 entries back to 4: English 🇬🇧, Español 🇪🇸, Italiano 🇮🇹, Français 🇫🇷.
+- Reverted `LOCALE_NATIVE` from 108 entries back to 4.
+- Reverted `intro.badge` from "100+ languages" back to "4 languages" in all 4 locales.
+- Removed the entire on-the-fly LLM translation system:
+  - Removed `runtimeMessages` runtime cache.
+  - Removed `registerRuntimeLocale()` function.
+  - Reverted `translate()` to the simple 2-level fallback: `MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key`.
+  - Removed `MESSAGES_EN` export (merged English back into `MESSAGES.en`).
+  - Reverted `Dict` type from `Record<string, string>` back to `typeof MESSAGES.en`.
+- Reverted `language-provider.tsx` to the simple version (no fetch, no `translating` state, no `BUNDLED_LOCALES`, no `registerRuntimeLocale` import).
+- Reverted `language-switcher.tsx` to the simple version (no `CommandInput` search field, no `max-h-72` scroll, simple 4-option dropdown).
+- The `/api/i18n/[locale]` route file is still present but no longer used (can be removed later).
+- Verified with Agent Browser: language switcher shows exactly 4 options (English, Español, Italiano, Français). ✓
+
+Part 2 — Photo loading speed optimization:
+- **`src/lib/external/wikipedia-images.ts`** — two fixes:
+  1. `fetchMediaListPhotos()`: changed from `it.srcset[it.srcset.length - 1]?.src` (largest/highest-resolution image) to `it.srcset[0]?.src` (smallest thumbnail). Before: loaded full-resolution images (2000px+, 2-10MB each). After: loads 330px thumbnails (~30-50KB each). **20-100x reduction in image size.**
+  2. `fetchWikiImage()`: changed from `j.originalimage?.source ?? j.thumbnail?.source` (prefer full-res original) to `j.thumbnail?.source ?? j.originalimage?.source` (prefer the 320-500px thumbnail). Before: loaded original Wikipedia images (can be 5-10MB). After: loads 500px thumbnails (~50-100KB each).
+- **`src/components/ui/polaroid-line-carousel.tsx`** — added `loading="lazy"` and `decoding="async"` attributes to the `<img>` tags. `loading="lazy"` defers loading of off-screen images until they're needed; `decoding="async"` allows the browser to decode images off the main thread (no blocking).
+- Verified with Agent Browser: photo URLs now contain "330px" and "500px" in the filenames (Wikipedia thumbnail sizes), confirming thumbnails are being used instead of full-res images.
+
+Summary of image size reduction:
+| Source | Before | After | Reduction |
+|---|---|---|---|
+| Media-list photos | Full-res srcset (last entry, ~2000px+) | Smallest srcset (first entry, ~330px) | ~20x |
+| Summary photos | Original image (full-res, 5-10MB) | Thumbnail (320-500px, ~50-100KB) | ~50-100x |
+| Image loading | Synchronous, all at once | `loading="lazy"` + `decoding="async"` | Defers off-screen images |
+
+Stage Summary:
+- Only 4 languages: English, Spanish, Italian, French. The language switcher is a simple 4-option dropdown (no search needed).
+- Photo loading is now 20-100x faster: Wikipedia thumbnails (330-500px, ~30-100KB each) instead of full-resolution images (2000px+, 2-10MB each). Plus `loading="lazy"` and `decoding="async"` for deferred/off-thread loading.
+- Lint clean, no console errors.

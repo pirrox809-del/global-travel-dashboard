@@ -14,173 +14,34 @@
  * Add a language: add a key to `LOCALES` + a dictionary to `MESSAGES`.
  */
 
-export type Locale = string;
+export type Locale = 'en' | 'es' | 'it' | 'fr';
 
 export const LOCALES: { code: Locale; label: string; flag: string }[] = [
-  // ── Europe ──
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'es', label: 'Español', flag: '🇪🇸' },
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
-  { code: 'uk', label: 'Українська', flag: '🇺🇦' },
-  { code: 'ro', label: 'Română', flag: '🇷🇴' },
-  { code: 'cs', label: 'Čeština', flag: '🇨🇿' },
-  { code: 'hu', label: 'Magyar', flag: '🇭🇺' },
-  { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
-  { code: 'da', label: 'Dansk', flag: '🇩🇰' },
-  { code: 'fi', label: 'Suomi', flag: '🇫🇮' },
-  { code: 'no', label: 'Norsk', flag: '🇳🇴' },
-  { code: 'sk', label: 'Slovenčina', flag: '🇸🇰' },
-  { code: 'bg', label: 'Български', flag: '🇧🇬' },
-  { code: 'hr', label: 'Hrvatski', flag: '🇭🇷' },
-  { code: 'sr', label: 'Српски', flag: '🇷🇸' },
-  { code: 'el', label: 'Ελληνικά', flag: '🇬🇷' },
-  { code: 'ca', label: 'Català', flag: '🇪🇸' },
-  { code: 'eu', label: 'Euskara', flag: '🇪🇸' },
-  { code: 'gl', label: 'Galego', flag: '🇪🇸' },
-  { code: 'lt', label: 'Lietuvių', flag: '🇱🇹' },
-  { code: 'lv', label: 'Latviešu', flag: '🇱🇻' },
-  { code: 'et', label: 'Eesti', flag: '🇪🇪' },
-  { code: 'sl', label: 'Slovenščina', flag: '🇸🇮' },
-  { code: 'sq', label: 'Shqip', flag: '🇦🇱' },
-  { code: 'be', label: 'Беларуская', flag: '🇧🇾' },
-  { code: 'bs', label: 'Bosanski', flag: '🇧🇦' },
-  { code: 'is', label: 'Íslenska', flag: '🇮🇸' },
-  { code: 'ga', label: 'Gaeilge', flag: '🇮🇪' },
-  { code: 'mk', label: 'Македонски', flag: '🇲🇰' },
-  { code: 'mt', label: 'Malti', flag: '🇲🇹' },
-  // ── Asia ──
-  { code: 'zh', label: '中文', flag: '🇨🇳' },
-  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-  { code: 'bn', label: 'বাংলা', flag: '🇧🇩' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'ko', label: '한국어', flag: '🇰🇷' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'th', label: 'ไทย', flag: '🇹🇭' },
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'ms', label: 'Melayu', flag: '🇲🇾' },
-  { code: 'fa', label: 'فارسی', flag: '🇮🇷' },
-  { code: 'ur', label: 'اردو', flag: '🇵🇰' },
-  { code: 'pa', label: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
-  { code: 'mr', label: 'मराठी', flag: '🇮🇳' },
-  { code: 'te', label: 'తెలుగు', flag: '🇮🇳' },
-  { code: 'ta', label: 'தமிழ்', flag: '🇮🇳' },
-  { code: 'gu', label: 'ગુજરાતી', flag: '🇮🇳' },
-  { code: 'kn', label: 'ಕನ್ನಡ', flag: '🇮🇳' },
-  { code: 'ml', label: 'മലയാളം', flag: '🇮🇳' },
-  { code: 'si', label: 'සිංහල', flag: '🇱🇰' },
-  { code: 'ne', label: 'नेपाली', flag: '🇳🇵' },
-  { code: 'az', label: 'Azərbaycan', flag: '🇦🇿' },
-  { code: 'kk', label: 'Қазақ', flag: '🇰🇿' },
-  { code: 'uz', label: 'Oʻzbek', flag: '🇺🇿' },
-  { code: 'ky', label: 'Кыргызча', flag: '🇰🇬' },
-  { code: 'tg', label: 'Тоҷикӣ', flag: '🇹🇯' },
-  { code: 'mn', label: 'Монгол', flag: '🇲🇳' },
-  { code: 'km', label: 'ខ្មែរ', flag: '🇰🇭' },
-  { code: 'lo', label: 'ລາວ', flag: '🇱🇦' },
-  { code: 'my', label: 'မြန်မာ', flag: '🇲🇲' },
-  { code: 'he', label: 'עברית', flag: '🇮🇱' },
-  { code: 'ku', label: 'Kurdî', flag: '🇮🇶' },
-  { code: 'ps', label: 'پښتو', flag: '🇦🇫' },
-  { code: 'hy', label: 'Հայերեն', flag: '🇦🇲' },
-  { code: 'ka', label: 'ქართული', flag: '🇬🇪' },
-  { code: 'jv', label: 'Basa Jawa', flag: '🇮🇩' },
-  { code: 'su', label: 'Basa Sunda', flag: '🇮🇩' },
-  { code: 'tl', label: 'Filipino', flag: '🇵🇭' },
-  { code: 'as', label: 'অসমীয়া', flag: '🇮🇳' },
-  { code: 'or', label: 'ଓଡ଼ିଆ', flag: '🇮🇳' },
-  { code: 'sd', label: 'سنڌي', flag: '🇵🇰' },
-  // ── Africa ──
-  { code: 'sw', label: 'Kiswahili', flag: '🇰🇪' },
-  { code: 'am', label: 'አማርኛ', flag: '🇪🇹' },
-  { code: 'ha', label: 'Hausa', flag: '🇳🇬' },
-  { code: 'yo', label: 'Yorùbá', flag: '🇳🇬' },
-  { code: 'ig', label: 'Igbo', flag: '🇳🇬' },
-  { code: 'zu', label: 'isiZulu', flag: '🇿🇦' },
-  { code: 'xh', label: 'isiXhosa', flag: '🇿🇦' },
-  { code: 'af', label: 'Afrikaans', flag: '🇿🇦' },
-  { code: 'so', label: 'Soomaali', flag: '🇸🇴' },
-  { code: 'om', label: 'Oromoo', flag: '🇪🇹' },
-  { code: 'wo', label: 'Wolof', flag: '🇸🇳' },
-  { code: 'mg', label: 'Malagasy', flag: '🇲🇬' },
-  { code: 'sn', label: 'chiShona', flag: '🇿🇼' },
-  { code: 'ny', label: 'Chichewa', flag: '🇲🇼' },
-  { code: 'st', label: 'Sesotho', flag: '🇱🇸' },
-  { code: 'tn', label: 'Setswana', flag: '🇧🇼' },
-  { code: 'rw', label: 'Kinyarwanda', flag: '🇷🇼' },
-  { code: 'ln', label: 'Lingala', flag: '🇨🇩' },
-  { code: 'ak', label: 'Akan', flag: '🇬🇭' },
-  { code: 'ee', label: 'Eʋe', flag: '🇬🇭' },
-  { code: 'bm', label: 'Bambara', flag: '🇲🇱' },
-  // ── Americas ──
-  { code: 'qu', label: 'Runa Simi', flag: '🇵🇪' },
-  { code: 'gn', label: 'Avañeẽ', flag: '🇵🇾' },
-  { code: 'ht', label: 'Kreyòl', flag: '🇭🇹' },
-  // ── Oceania ──
-  { code: 'mi', label: 'Te Reo Māori', flag: '🇳🇿' },
-  { code: 'haw', label: 'ʻŌlelo Hawaiʻi', flag: '🇺🇸' },
-  // ── Middle East / Central Asia ──
-  { code: 'tk', label: 'Türkmen', flag: '🇹🇲' },
-  { code: 'ug', label: 'ئۇيغۇر', flag: '🇨🇳' },
-  { code: 'lb', label: 'Lëtzebuergesch', flag: '🇱🇺' },
-  { code: 'fo', label: 'Føroyskt', flag: '🇫🇴' },
 ];
 
 export const DEFAULT_LOCALE: Locale = 'en';
 
-/**
- * English name of each locale — used by the LLM prompt ("Write in Italian").
- * For locales not listed here, the code itself is used as the language name.
- */
-export const LOCALE_NATIVE: Record<string, string> = {
-  en: 'English', es: 'Spanish', it: 'Italian', fr: 'French',
-  de: 'German', pt: 'Portuguese', ru: 'Russian', nl: 'Dutch',
-  pl: 'Polish', uk: 'Ukrainian', ro: 'Romanian', cs: 'Czech',
-  hu: 'Hungarian', sv: 'Swedish', da: 'Danish', fi: 'Finnish',
-  no: 'Norwegian', sk: 'Slovak', bg: 'Bulgarian', hr: 'Croatian',
-  sr: 'Serbian', el: 'Greek', ca: 'Catalan', eu: 'Basque',
-  gl: 'Galician', lt: 'Lithuanian', lv: 'Latvian', et: 'Estonian',
-  sl: 'Slovenian', sq: 'Albanian', be: 'Belarusian', bs: 'Bosnian',
-  is: 'Icelandic', ga: 'Irish', mk: 'Macedonian', mt: 'Maltese',
-  zh: 'Chinese', hi: 'Hindi', ar: 'Arabic', bn: 'Bengali',
-  ja: 'Japanese', ko: 'Korean', tr: 'Turkish', vi: 'Vietnamese',
-  th: 'Thai', id: 'Indonesian', ms: 'Malay', fa: 'Persian',
-  ur: 'Urdu', pa: 'Punjabi', mr: 'Marathi', te: 'Telugu',
-  ta: 'Tamil', gu: 'Gujarati', kn: 'Kannada', ml: 'Malayalam',
-  si: 'Sinhala', ne: 'Nepali', az: 'Azerbaijani', kk: 'Kazakh',
-  uz: 'Uzbek', ky: 'Kyrgyz', tg: 'Tajik', mn: 'Mongolian',
-  km: 'Khmer', lo: 'Lao', my: 'Burmese', he: 'Hebrew',
-  ku: 'Kurdish', ps: 'Pashto', hy: 'Armenian', ka: 'Georgian',
-  jv: 'Javanese', su: 'Sundanese', tl: 'Filipino', as: 'Assamese',
-  or: 'Odia', sd: 'Sindhi',
-  sw: 'Swahili', am: 'Amharic', ha: 'Hausa', yo: 'Yoruba',
-  ig: 'Igbo', zu: 'Zulu', xh: 'Xhosa', af: 'Afrikaans',
-  so: 'Somali', om: 'Oromo', wo: 'Wolof', mg: 'Malagasy',
-  sn: 'Shona', ny: 'Chichewa', st: 'Sotho', tn: 'Tswana',
-  rw: 'Kinyarwanda', ln: 'Lingala', ak: 'Akan', ee: 'Ewe',
-  bm: 'Bambara',
-  qu: 'Quechua', gn: 'Guarani', ht: 'Haitian Creole',
-  mi: 'Maori', haw: 'Hawaiian',
-  tk: 'Turkmen', ug: 'Uyghur', lb: 'Luxembourgish', fo: 'Faroese',
+/** Native name of each locale — used by the LLM prompt ("Write in Italian"). */
+export const LOCALE_NATIVE: Record<Locale, string> = {
+  en: 'English',
+  es: 'Spanish',
+  it: 'Italian',
+  fr: 'French',
 };
 
-/** Get the English name of a locale for the LLM prompt. Falls back to the code. */
+/** Get the English name of a locale for the LLM prompt. */
 export function getLLMLanguageName(locale: string): string {
-  return LOCALE_NATIVE[locale] ?? locale;
+  return LOCALE_NATIVE[locale as Locale] ?? locale;
 }
 
-type Dict = Record<string, string>;
+type Dict = typeof MESSAGES.en;
 
-/** Exported so the /api/i18n/[locale] endpoint can use it as the
- *  source for LLM translation into other languages. */
-export const MESSAGES_EN: Dict = {
+const MESSAGES = {
+  en: {
     // Header / chrome
     'app.title': 'Global Travel Dashboard',
     'app.subtitle': '189 countries · live weather, FX & advisories',
@@ -198,7 +59,7 @@ export const MESSAGES_EN: Dict = {
     'empty.body': 'Weather, exchange rates, advisories, food, places, prices and local info for 189 countries.',
     'empty.hint': 'Or search the dropdown above. First visit to each country generates its travel brief.',
     // Intro / landing screen
-    'intro.badge': '189 countries · 100+ languages · live data',
+    'intro.badge': '189 countries · 4 languages · live data',
     'intro.title1': 'Global Travel',
     'intro.title2': 'Dashboard',
     'intro.subtitle': 'Every country, one page.',
@@ -359,13 +220,7 @@ export const MESSAGES_EN: Dict = {
     // Footer
     'footer.sources': 'Data sources:',
     'footer.disclaimer': 'Hotel & flight ranges are LLM-generated estimates · not live booking data.',
-};
-
-/** Full translations for the 4 manually-translated locales.
- *  For all other locales, the /api/i18n/[locale] endpoint generates
- *  translations on-the-fly via the LLM and caches them. */
-const MESSAGES: Record<string, Dict> = {
-  en: MESSAGES_EN,
+  },
   es: {
     'app.title': 'Panel de Viajes Global',
     'app.subtitle': '189 países · clima, divisas y avisos en vivo',
@@ -381,7 +236,7 @@ const MESSAGES: Record<string, Dict> = {
     'empty.body': 'Clima, tipos de cambio, avisos, comida, lugares, precios e info local para 189 países.',
     'empty.hint': 'O busca en el desplegable de arriba. La primera visita a cada país genera su guía de viaje.',
     // Intro / landing screen
-    'intro.badge': '189 países · 100+ idiomas · datos en vivo',
+    'intro.badge': '189 países · 4 idiomas · datos en vivo',
     'intro.title1': 'Panel de Viajes',
     'intro.title2': 'Global',
     'intro.subtitle': 'Cada país, un panel.',
@@ -547,7 +402,7 @@ const MESSAGES: Record<string, Dict> = {
     'empty.body': 'Meteo, cambi, avvisi, cibo, luoghi, prezzi e info locali per 189 paesi.',
     'empty.hint': 'Oppure cerca nel menu a tendina sopra. La prima visita a ogni paese genera la sua guida di viaggio.',
     // Intro / schermata iniziale
-    'intro.badge': '189 paesi · 100+ lingue · dati live',
+    'intro.badge': '189 paesi · 4 lingue · dati live',
     'intro.title1': 'Dashboard Viaggi',
     'intro.title2': 'Globale',
     'intro.subtitle': 'Ogni paese, una dashboard.',
@@ -713,7 +568,7 @@ const MESSAGES: Record<string, Dict> = {
     'empty.body': 'Météo, taux de change, avis, cuisine, lieux, prix et infos locales pour 189 pays.',
     'empty.hint': 'Ou recherchez dans le menu déroulant ci-dessus. La première visite de chaque pays génère son guide de voyage.',
     // Intro / écran d'accueil
-    'intro.badge': '189 pays · 100+ langues · données en direct',
+    'intro.badge': '189 pays · 4 langues · données en direct',
     'intro.title1': 'Tableau de Bord',
     'intro.title2': 'Voyages Global',
     'intro.subtitle': 'Chaque pays, un tableau de bord.',
@@ -866,15 +721,6 @@ const MESSAGES: Record<string, Dict> = {
   },
 };
 
-/** Runtime cache for LLM-translated locale strings. Populated by the
- *  language provider when it fetches /api/i18n/[locale]. */
-const runtimeMessages: Record<string, Dict> = {};
-
-/** Register a runtime-translated locale (called by the language provider
- *  after fetching from /api/i18n/[locale]). */
-export function registerRuntimeLocale(locale: string, messages: Dict) {
-  runtimeMessages[locale] = messages;
-}
 
 export type MessageKey = keyof Dict;
 
@@ -931,10 +777,7 @@ export function formatTime(timeStr: string, locale: Locale): string {
  * visible during dev rather than silently empty).
  */
 export function translate(locale: Locale, key: MessageKey, params?: Record<string, string | number>): string {
-  let str = runtimeMessages[locale]?.[key]
-    ?? MESSAGES[locale]?.[key]
-    ?? MESSAGES.en[key]
-    ?? key;
+  let str = MESSAGES[locale]?.[key] ?? MESSAGES.en[key] ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       str = str.replace(`{${k}}`, String(v));

@@ -48,7 +48,7 @@ async function fetchMediaListPhotos(articleTitle: string, maxPhotos = 6): Promis
       for (const it of items) {
         if (it.type !== 'image' || !it.srcset?.length) continue;
         if (exclude.test(it.title ?? '')) continue;
-        const src = it.srcset[it.srcset.length - 1]?.src; // largest
+        const src = it.srcset[0]?.src; // smallest — faster to load (260px display needs only ~320px)
         if (!src || /\.svg/i.test(src) || /\.gif/i.test(src)) continue;
         let url = src.startsWith('//') ? 'https:' + src : src;
         photos.push({
@@ -99,10 +99,12 @@ async function fetchWikiImage(articleTitle: string): Promise<CountryPhoto | null
       });
       if (!res.ok) return null;
       const j = (await res.json()) as WikiSummary;
-      // Prefer the original (full-res) image; fall back to thumbnail.
+      // Prefer the thumbnail (typically 320-400px, fast to load) over the
+      // original (full-res, can be 5-10MB). The carousel displays at 260px,
+      // so a 320px thumbnail is more than enough.
       // Do NOT modify the URL — Wikimedia thumb URLs are hash-validated and
       // changing the width in the path breaks them (HTTP 400).
-      let src = j.originalimage?.source ?? j.thumbnail?.source ?? '';
+      let src = j.thumbnail?.source ?? j.originalimage?.source ?? '';
       if (!src) return null;
       if (/\.svg/i.test(src)) return null; // skip flags/logos
       if (src.startsWith('//')) src = 'https:' + src;

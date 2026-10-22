@@ -460,6 +460,8 @@ export default function PolaroidLineCarousel({
               src={srcs[i]}
               alt={sl.alt || sl.title || ""}
               draggable={false}
+              loading="lazy"
+              decoding="async"
               onError={(e) => {
                 // If the image URL is broken (CORS, hotlink block, 404…),
                 // fall back to a painted landscape so we NEVER show the
