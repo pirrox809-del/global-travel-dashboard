@@ -73,3 +73,36 @@ export async function getEconomyData(iso3: string | null): Promise<EconomyData |
     };
   }) as Promise<EconomyData | null>;
 }
+
+export type PopulationEntry = { value: number; year: number };
+
+/**
+ * Fetch the latest population for ALL countries in ONE World Bank request.
+ *
+ * `mrnev=1` (most recent non-empty value) collapses the per-year series to a
+ * single entry per entity, so one request (~300 lines) covers every country
+ * the World Bank tracks — including small states (Monaco, Andorra...) and
+ * many territories. Aggregates (WLD, EUU...) come back too but their codes
+ * never collide with real ISO-3 country codes, so they are simply ignored
+ * at lookup time.
+ *
+ * Cached 24h — population updates once a year at most.
+ */
+export async function fetchWorldPopulations(): Promise<Map<string, PopulationEntry>> {
+  return cache.wrap('wb:population:all', TTL.countryList, async () => {
+    const out = new Map<string, PopulationEntry>();
+    try {
+      const url = `${BASE}/all/indicator/SP.POP.TOTL?format=json&mrnev=1&per_page=500`;
+      const res = await fetch(url, { next: { revalidate: TTL.countryList } });
+      if (!res.ok) return out;
+      const j = (await res.json()) as Array<null | Array<{ countryiso3code?: string; value: number | null; date: string }>>;
+      for (const row of j[1] ?? []) {
+        if (!row?.countryiso3code || row.value === null || row.value === undefined) continue;
+        out.set(row.countryiso3code.toUpperCase(), { value: row.value, year: Number(row.date) || 0 });
+      }
+    } catch {
+      // network failure → empty map; callers degrade gracefully
+    }
+    return out;
+  }) as Promise<Map<string, PopulationEntry>>;
+}

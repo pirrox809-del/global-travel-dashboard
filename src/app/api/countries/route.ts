@@ -11,12 +11,34 @@
  */
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { syncCountriesToDb } from '@/lib/external/rest-countries';
+import { syncCountriesToDb, syncPopulationsToDb } from '@/lib/external/rest-countries';
 import type { CountryListItem } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Lazy population refresh: the World Bank backfill runs at most once every
+ * 24h per server instance, fire-and-forget (never blocks the response).
+ * First run populates the NULL population column; later runs are no-ops
+ * unless WB published newer data.
+ */
+const POP_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const globalScope = globalThis as unknown as { __popSyncAt?: number };
+function maybeRefreshPopulations() {
+  const now = Date.now();
+  if (globalScope.__popSyncAt && now - globalScope.__popSyncAt < POP_SYNC_INTERVAL_MS) return;
+  globalScope.__popSyncAt = now;
+  void syncPopulationsToDb()
+    .then((n) => {
+      if (n > 0) console.log(`[countries] population backfilled for ${n} countries (World Bank)`);
+    })
+    .catch((e) => console.error('[countries] population sync failed:', (e as Error).message));
+}
+
 export async function GET() {
+  // Fire-and-forget World Bank population backfill (max once / 24h).
+  maybeRefreshPopulations();
+
   let countries = await db.country.findMany({
     orderBy: [{ region: 'asc' }, { name: 'asc' }],
     select: {

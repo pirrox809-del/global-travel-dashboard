@@ -884,3 +884,21 @@ Stage Summary:
 - Cursor now tracks the pointer with OS-like fluidity: direct GPU translation of a pre-rotated cached layer, no React involvement on the move path.
 - Bonus states added: auto-hide over text fields, hide on window blur/leave, click press-feedback.
 - NOTE: GitHub publishing flow (Task 28 guide delivered) was paused mid-way: user's GitHub account creation pending; gh CLI installed at ~/.local/bin/gh, device-flow login tested working (code expires ~15 min — regenerate when user returns).
+
+---
+Task ID: 29
+Agent: main (Z.ai Code)
+Task: Aggiungere a ogni paese: densità di popolazione, forma di governo (Repubblica parlamentare, monarchia, ecc.), capo di Stato (presidente/re) aggiornati ad oggi
+
+Work Log:
+- Scaricato da Wikipedia la pagina "List of current heads of state and government" (aggiornata, fonte live) e parsata in JSON strutturato (script /home/z/my-project/scripts/gen_gov.py + /tmp/heads.json): 210 entità, 198 stati sovrani mappati su codici ISO alpha-2
+- Creato src/lib/government-data.ts: dataset curato con ~198 paesi — GovTypeKey (15 forme di governo), GovOffice (nome, titolo, flag acting), GOV_DATA_AS_OF = 'October 2026', lookupGovernment(code). Casi speciali curati: Svizzera (Guy Parmelin, direttoriale), Bosnia (presidenza collegiale Bećirović + Krišto), Iran (Khamenei guida suprema + Pezeshkian), Sudan (Burhan ad interim + Idris), Haiti (presidente vacante → solo PM ad interim), San Marino (2 capitani reggenti), Andorra (2 coprincipi), Nicaragua (co-presidenti), North Korea/Cina (solo capo di Stato)
+- i18n.ts: 40 nuove chiavi × 4 lingue (gov.* per 15 forme di governo, title.* per 18 titoli, gov.acting/vacant/asOf, hero.government/headOfState/headOfGovernment/density/densityUnit)
+- hero.tsx: 4 nuovi chip — Densità (calcolata population/area, con decimali sotto 100), Forma di governo (Landmark icon), Capo di Stato (Crown per monarchie/papa/guide supreme, UserRound per presidenti), Capo di Governo (Briefcase, solo quando diverso dal capo di Stato); titolo tooltip "Verificato ottobre 2026"; localizzazione connettore "and"→"e/y/et" per uffici multipli
+- SCOPERTA: colonna population era NULL per tutti i 250 paesi (il dataset mledoze non la include, a differenza del vecchio restcountries.com). Fix: worldbank.ts aggiunge fetchWorldPopulations() (1 sola richiesta WB SP.POP.TOTL mrnev=1 per tutti, cache 24h); rest-countries.ts aggiunge syncPopulationsToDb(); /api/countries fa fire-and-forget refresh max 1/24h; backfill immediato eseguito con scripts/backfill-population.ts → 215 paesi popolati (solo micro-territori senza dati WB: VA/TW/XK/EH ecc. → chip nascosti)
+- Verifica browser (agent-browser): IT (Repubblica parlamentare, Mattarella + Meloni, 196 ab./km²), GB (monarchia costituzionale, King: Charles III 👑 + PM Burnham, 286), US (federal presidential, solo Trump, 36.5 con decimali), SM (Captain Regent: Giovagnoli and Casali, 559), VA (Elective theocracy, Pope: Leo XIV, niente popolazione = degradazione graziosa), HT (Transitional government, PM ad interim, 429), lingua IT ("Repubblica federale presidenziale", "Presidente: Donald Trump", "36.5 ab./km²"), mobile 375px (griglia 2 colonne ok). Lint pulito, 0 errori console (il badge "1 Issue" è il warning Radix pre-esistente noto)
+
+Stage Summary:
+- Ogni dashboard paese ora mostra: Densità di popolazione, Forma di governo, Capo di Stato (con titolo corretto per monarchie/teocrazie/repubbliche), Capo di Governo quando pertinente — tutti localizzati in en/es/it/fr e aggiornati a ottobre 2026 (fonte Wikipedia live)
+- Architettura: governo = dataset statico curato client-side (src/lib/government-data.ts); densità calcolata al volo; popolazione ora realmente nel DB grazie al backfill World Bank (annuale, lazy refresh 24h)
+- Per aggiornare i leader in futuro: modificare l'entry ISO2 in government-data.ts (fonte: Wikipedia "List of current heads of state and government")

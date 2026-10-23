@@ -20,6 +20,7 @@
  */
 import { db } from '@/lib/db';
 import { cache, TTL } from '@/lib/cache';
+import { fetchWorldPopulations } from './worldbank';
 
 const COUNTRIES_JSON_URL =
   'https://raw.githubusercontent.com/mledoze/countries/master/countries.json';
@@ -138,4 +139,42 @@ export async function syncCountriesToDb(): Promise<number> {
     upserted++;
   }
   return upserted;
+}
+
+/**
+ * Backfill / refresh the `population` column from the World Bank.
+ *
+ * The mledoze dataset does NOT carry population (the old REST Countries API
+ * did), so the column would stay NULL forever without this step. The World
+ * Bank's SP.POP.TOTL indicator covers every UN member + most territories;
+ * one request fetches the latest value for all of them (see
+ * `fetchWorldPopulations`). Rows without a WB entry (e.g. Taiwan, Vatican)
+ * are simply left untouched — the UI hides population/density for them.
+ *
+ * Called lazily (non-blocking) by the countries API at most once per day.
+ */
+export async function syncPopulationsToDb(): Promise<number> {
+  const pops = await fetchWorldPopulations();
+  if (pops.size === 0) return 0;
+
+  const countries = await db.country.findMany({
+    select: { code: true, code3: true, population: true },
+  });
+
+  let updated = 0;
+  for (const c of countries) {
+    const iso3 = c.code3?.toUpperCase();
+    if (!iso3) continue;
+    const entry = pops.get(iso3);
+    if (!entry) continue;
+    const current = c.population ? c.population.toString() : null;
+    const next = String(Math.round(entry.value));
+    if (current === next) continue; // no change → skip the write
+    await db.country.update({
+      where: { code: c.code },
+      data: { population: BigInt(next) },
+    });
+    updated++;
+  }
+  return updated;
 }
