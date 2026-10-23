@@ -833,3 +833,23 @@ Stage Summary:
 - The site title (intro landing + home empty state) now has the user's requested shutter-blinds animation, replayable via a small refresh control, fully responsive, dark-mode aware, accessible (sr-only headings, reduced-motion support), and in the site's amber palette.
 - Fixed a pre-existing useSyncExternalStore server-snapshot console error in favorites-provider.
 - Known pre-existing issue (NOT from this task): benign Radix aria-controls hydration warning on the language switcher — present before and after; popover works.
+
+---
+Task ID: 28
+Agent: main (Z.ai Code)
+Task: Prepare the project for publishing on GitHub + hosting (user asked how to publish; mentioned Vercel).
+
+Work Log:
+- Inspected repo state: git initialized on branch `main` with auto-commits, NO remote configured yet. .gitignore already covers node_modules/.next/.env*/logs/.z-ai-config.
+- Verified `db/custom.db` (476KB) IS git-tracked → every clone/deploy ships the pre-seeded dataset (250 countries, LLM content for 45).
+- Investigated z-ai-web-dev-sdk: it reads a `.z-ai-config` JSON (baseUrl + apiKey) from cwd/home//etc — NOT portable outside the sandbox without user's own credentials. Used only by llm-content.ts (+ an unused i18n route). All other data sources are public APIs → work on any host.
+- Untracked 13 test screenshots (root PNGs + upload/) — none referenced in src/. Added gitignore rules: /upload/, /*.png, /*.jpg, /*.jpeg, /*.webm, /agent-ctx/.
+- Added `!.env.example` exception to the `.env*` ignore rule.
+- Created `.env.example` (portable DATABASE_URL + .z-ai-config documentation).
+- Created Italian README.md: features table with sources, stack, local setup, publishing guide (GitHub commands, Vercel + Turso path, Railway/Render persistent-volume path), what-works-where matrix, project structure.
+- Committed: "chore: prepare repo for publishing — README, .env.example, untrack test screenshots".
+- Verified dev server unaffected (home 200, /api/countries 200).
+
+Stage Summary:
+- Repo is publication-ready: user only needs to create an empty GitHub repo and `git remote add origin … && git push -u origin main`.
+- Deployment reality documented honestly: frontend + all live-data sections work on any host; SQLite needs a persistent filesystem (Railway/Render) or Turso on Vercel; LLM content generation needs the user's own .z-ai-config credentials outside the sandbox (pre-seeded content still displays via the committed DB).
