@@ -32,9 +32,18 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# test screenshots / dev artifacts (root level only, public/ is safe)
+/upload/
+/*.png
+/*.jpg
+/*.jpeg
+/*.webm
+/agent-ctx/
 
 
 # typescript
