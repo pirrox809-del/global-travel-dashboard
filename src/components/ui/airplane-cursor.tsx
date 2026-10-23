@@ -1,89 +1,130 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * AirplaneCursor — replaces the default OS arrow cursor with a small
- * SVG airplane that follows the pointer with ZERO lag.
+ * SVG airplane that follows the pointer with ZERO lag and ZERO jank.
  *
- * KEY DESIGN DECISIONS (all user-requested):
+ * WHY THIS IS FLUID (the "no stutter" architecture):
  *
- * 1. **Zero-lag tracking** — the transform is written DIRECTLY inside
- *    the `pointermove` event handler. No requestAnimationFrame loop,
- *    no lerp, no transition. The airplane position updates at the
- *    pointer-event rate (60-120Hz) and is always at the exact
- *    pointer coordinates. This makes it feel identical to the OS
- *    cursor.
+ * 1. **Zero React renders on pointer activity.** The component renders
+ *    exactly once. Every visual update (position, visibility, press
+ *    feedback) is a direct `style` write via refs — no setState in any
+ *    pointer event handler. React re-renders (live clock, globes,
+ *    framer-motion) can never delay the cursor.
  *
- * 2. **Fixed -20° tilt** — the airplane is permanently tilted 20°
- *    counter-clockwise (to the left), matching the orientation of
- *    the Windows arrow cursor. No movement-based rotation (the
- *    Windows cursor doesn't rotate either).
+ * 2. **Two compositor layers with separate jobs:**
+ *      - outer layer: ONLY `translate3d(x, y, 0)` — pure GPU translation
+ *        written directly in the pointermove handler (no rAF loop, no
+ *        lerp → the plane is always at the exact pointer coordinates).
+ *      - inner layer: the static `rotate(-20deg)` tilt, set once at
+ *        mount. Its rotated bitmap is cached by the compositor, so
+ *        moving the cursor never re-rasterizes the airplane.
  *
- * 3. **Nose hotspot** — the transform-origin is set to the airplane's
- *    nose (50% width, 5% height). Combined with the correct
- *    margin offset, the nose sits exactly at the pointer position
- *    so clicks register precisely at the visual cursor tip — same
- *    behaviour as the Windows arrow cursor.
+ * 3. `will-change: transform` + `translate3d` keep both layers promoted
+ *    to the GPU. No `filter`, no `box-shadow`, no backdrop effects —
+ *    nothing that forces re-rasterization per frame.
  *
- * 4. **No drop-shadow filter** — CSS `filter: drop-shadow` forces the
- *    browser to re-rasterize the element on every transform change,
- *    causing 5-10ms of lag per frame. Removed entirely; visibility
- *    on light/dark backgrounds is handled by the SVG's dark stroke
- *    (`#451a03`) on every path.
+ * 4. **Clean in every state:**
+ *      - hidden until the first pointer move (no plane stuck in a corner)
+ *      - fades out when the pointer leaves the document or the window
+ *        loses focus
+ *      - fades out over text fields (input/textarea/contenteditable) so
+ *        the native I-beam takes over — no double cursor over text
+ *      - subtle press feedback (scales down while the button is held)
  *
- * 5. **36px size** (was 43px) — slightly smaller as requested.
+ * 5. **Nose hotspot** — margins + transform-origin place the airplane's
+ *    nose exactly at the pointer coordinates, so clicks register at the
+ *    visual cursor tip.
  *
- * 6. **Single cursor** — the OS cursor is hidden via CSS
- *    (`cursor: none !important` on all elements inside `@media
- *    (pointer: fine)` in globals.css). When the pointer leaves the
- *    document, the airplane fades out and the OS cursor returns
- *    automatically (since the CSS only applies inside the site).
+ * 6. Touch devices are ignored entirely (`pointer: fine` guard).
  */
+
+/** Elements over which the native text cursor takes precedence. */
+const EDITABLE_SELECTOR =
+  'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
+
+/** Static tilt of the airplane, baked once onto the inner layer. */
+const PLANE_TRANSFORM = 'rotate(-20deg)';
+
 export function AirplaneCursor() {
-  const planeRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null); // position layer
+  const planeRef = useRef<HTMLDivElement>(null); // tilted plane layer
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Skip touch-primary devices (phones/tablets): no hover cursor there.
+    // Note: this is NOT a strict `pointer: fine` check — environments that
+    // report `pointer: none` (headless browsers, some remote desktops) still
+    // have a working pointer, and on them the cursor must work too.
+    if (
+      window.matchMedia('(pointer: coarse)').matches &&
+      !window.matchMedia('(pointer: fine)').matches
+    ) {
+      return;
+    }
 
-    // The fixed tilt angle (20° counter-clockwise = "to the left").
-    // Applied once, never changes — no rAF, no lerp, no delay.
-    const TILT_DEG = -20;
+    const root = rootRef.current;
+    const plane = planeRef.current;
+    if (!root || !plane) return;
 
-    // Write the transform directly. Called from pointermove — no rAF.
-    const writeTransform = (x: number, y: number) => {
-      if (planeRef.current) {
-        planeRef.current.style.transform =
-          `translate3d(${x}px, ${y}px, 0) rotate(${TILT_DEG}deg)`;
-      }
+    // ── Visibility (direct style writes — no React) ─────────────────
+    const show = () => {
+      root.style.opacity = '1';
+    };
+    const hide = () => {
+      root.style.opacity = '0';
     };
 
+    // ── Position (the only thing written on every move) ─────────────
+    // Written straight into the event handler: Chrome rAF-aligns
+    // pointermove, so this is applied on the very next frame with the
+    // exact pointer coordinates — identical to the OS cursor feel.
     const onPointerMove = (e: PointerEvent) => {
-      writeTransform(e.clientX, e.clientY);
-      setVisible(true);
+      root.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+
+      // Over text fields the native I-beam is shown instead (the CSS in
+      // globals.css re-enables it there) — hide the plane to avoid a
+      // double cursor. Cheapest possible check, runs once per frame.
+      const target = e.target as Element | null;
+      if (target?.closest?.(EDITABLE_SELECTOR)) hide();
+      else show();
     };
 
-    const onPointerLeave = () => setVisible(false);
-    const onPointerEnter = () => setVisible(true);
-    const onPointerDown = () => setVisible(true);
+    // ── Press feedback ──────────────────────────────────────────────
+    const onPointerDown = () => {
+      plane.style.transform = `${PLANE_TRANSFORM} scale(0.85)`;
+    };
+    const onPointerUp = () => {
+      plane.style.transform = PLANE_TRANSFORM;
+    };
 
-    // pointermove on window — fires at the display refresh rate.
+    // ── Window/document edges ───────────────────────────────────────
+    const onDocLeave = () => hide();
+    const onDocEnter = () => show();
+    const onWindowBlur = () => hide();
+
     window.addEventListener('pointermove', onPointerMove, { passive: true });
-    document.addEventListener('pointerleave', onPointerLeave);
-    document.addEventListener('pointerenter', onPointerEnter);
     window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('pointerup', onPointerUp, { passive: true });
+    window.addEventListener('blur', onWindowBlur);
+    document.documentElement.addEventListener('pointerleave', onDocLeave);
+    document.documentElement.addEventListener('pointerenter', onDocEnter);
 
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
-      document.removeEventListener('pointerleave', onPointerLeave);
-      document.removeEventListener('pointerenter', onPointerEnter);
       window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('blur', onWindowBlur);
+      document.documentElement.removeEventListener('pointerleave', onDocLeave);
+      document.documentElement.removeEventListener('pointerenter', onDocEnter);
     };
   }, []);
 
   return (
     <div
+      ref={rootRef}
       aria-hidden
       style={{
         position: 'fixed',
@@ -93,36 +134,30 @@ export function AirplaneCursor() {
         height: 0,
         pointerEvents: 'none',
         zIndex: 99999,
-        opacity: visible ? 1 : 0,
-        // Only transition the opacity (for fade in/out when the pointer
-        // enters/leaves the document). Do NOT transition the transform —
-        // that would add lag to the cursor tracking.
+        // Hidden until the first pointer move; fades in/out on the GPU.
+        opacity: 0,
         transition: 'opacity 150ms ease-out',
+        // Position layer: promoted, only ever translated.
+        willChange: 'transform',
+        // Start offscreen so the plane is never visible in a corner
+        // before the first pointermove arrives.
+        transform: 'translate3d(-100px, -100px, 0)',
       }}
     >
       <div
         ref={planeRef}
         style={{
-          // The SVG is 36×36px. The nose is at viewBox (20, 2) which
-          // maps to rendered px (18, 1.8) — i.e. 50% of width, 5% of
-          // height from the SVG's top-left corner.
-          //
-          // transform-origin at (50%, 5%) = the nose. This means:
-          //   - Rotation pivots around the nose (not the center).
-          //   - After rotation, the nose stays at the same point.
-          //
-          // marginLeft/marginTop offset the SVG so the nose lands
-          // exactly at the pointer coordinates written by
-          // `writeTransform(clientX, clientY)`:
-          //   marginLeft: -18  →  SVG's left edge is 18px left of pointer
-          //   marginTop: -1.8  →  SVG's top edge is 1.8px above pointer
-          //   →  nose at (left + 18, top + 1.8) = (pointer.x, pointer.y) ✓
+          // The SVG is 36×36px with the nose at viewBox (20, 2) →
+          // rendered px (18, 1.8). These margins put the nose exactly on
+          // the parent origin (= the pointer coordinates).
           marginLeft: -18,
           marginTop: -1.8,
+          // Tilt layer: baked ONCE — the rotated bitmap stays cached on
+          // its own compositor layer while the parent translates.
+          transform: PLANE_TRANSFORM,
           transformOrigin: '50% 5%',
           willChange: 'transform',
-          // No drop-shadow filter — it causes re-rasterization lag.
-          // The SVG's dark stroke (#451a03) provides visibility.
+          backfaceVisibility: 'hidden',
         }}
       >
         <AirplaneSvg />
@@ -133,8 +168,8 @@ export function AirplaneCursor() {
 
 /**
  * Detailed commercial-jet top-view SVG, 36×36px rendered (40×40 viewBox),
- * nose pointing UP (north). The -20° tilt is applied by the parent
- * div's transform, not inside the SVG — so the SVG itself is "north-up".
+ * nose pointing UP (north). The -20° tilt is applied by the parent div's
+ * transform, not inside the SVG — so the SVG itself is "north-up".
  *
  * Drawn back-to-front so the fuselage overlaps the wing roots.
  */

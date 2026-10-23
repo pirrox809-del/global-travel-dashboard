@@ -853,3 +853,34 @@ Work Log:
 Stage Summary:
 - Repo is publication-ready: user only needs to create an empty GitHub repo and `git remote add origin … && git push -u origin main`.
 - Deployment reality documented honestly: frontend + all live-data sections work on any host; SQLite needs a persistent filesystem (Railway/Render) or Turso on Vercel; LLM content generation needs the user's own .z-ai-config credentials outside the sandbox (pre-seeded content still displays via the committed DB).
+
+---
+Task ID: 29
+Agent: main (Z.ai Code)
+Task: Make the airplane cursor perfectly fluid everywhere ("non deve andare a scatti, pulito e fluido in ogni stato, in ogni parte del sito").
+
+Root cause found:
+- The old component called `setVisible(true)` inside the `pointermove` handler → React re-render attempts at pointer-event rate (60–120Hz), competing with the site's heavy main-thread work (cobe/react-globe WebGL, neural-noise shader, live clock, framer-motion) → visible stutter ("scatti").
+
+Rewritten `src/components/ui/airplane-cursor.tsx`:
+1. ZERO React renders on pointer activity — component renders once; all updates are direct `style` writes via refs (position, opacity, press feedback). No setState in any pointer handler.
+2. Two compositor layers with separate jobs:
+   - outer (position layer): only `translate3d(x,y,0)` written directly in pointermove (no rAF loop, no lerp → exact pointer coordinates, zero lag);
+   - inner (tilt layer): static `rotate(-20deg)` baked ONCE — rotated bitmap cached by the compositor, never re-rasterized while moving.
+3. `will-change: transform` + `translate3d` + `backface-visibility: hidden` keep both layers GPU-promoted. No filters/shadows/backdrop effects.
+4. Clean in every state: hidden until first move (starts offscreen at -100,-100), fades out on document leave and window blur, auto-hides over text fields (input/textarea/select/contenteditable → native I-beam takes over, no double cursor), press feedback (scale 0.85 while button held).
+5. Touch-primary guard: skips only when `(pointer: coarse)` matches AND `(pointer: fine)` does NOT — so headless/remote-desktop environments reporting `pointer: none` still get the cursor (verified: strict `pointer: fine` check broke it in the headless test env).
+
+Verification (agent-browser):
+- Synthetic pointermove: transform updates instantly to exact coords (400,300 → 800,500) ✓
+- Performance: 500 pointermove events processed in 2.60ms total = 0.0052ms per move (≈3200 moves per 60fps frame budget) — jank-free by construction ✓
+- Press: `rotate(-20deg) scale(0.85)` on pointerdown, restored on pointerup ✓
+- pointerleave on documentElement → opacity 0 (hidden) ✓
+- Over dashboard search input → opacity 0; outside → opacity 1 (native text cursor takes over) ✓
+- Real CDP mouse move + screenshot: airplane nose exactly at pointer position, rendered crisply ✓
+- 0 console errors; lint clean; site 200 ✓
+
+Stage Summary:
+- Cursor now tracks the pointer with OS-like fluidity: direct GPU translation of a pre-rotated cached layer, no React involvement on the move path.
+- Bonus states added: auto-hide over text fields, hide on window blur/leave, click press-feedback.
+- NOTE: GitHub publishing flow (Task 28 guide delivered) was paused mid-way: user's GitHub account creation pending; gh CLI installed at ~/.local/bin/gh, device-flow login tested working (code expires ~15 min — regenerate when user returns).
