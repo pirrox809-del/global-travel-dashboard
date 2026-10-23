@@ -800,3 +800,36 @@ Stage Summary:
   2. As quick-pick buttons in a "Favorites" section at the TOP of the home page (before the featured countries).
 - The favourites are persisted in localStorage (`gtd-favorites`) — they survive page reloads and browser sessions.
 - Lint clean, no console errors.
+
+---
+Task ID: 27
+Agent: main (Z.ai Code)
+Task: Integrate the "Hero Shutter Text" animation into the site title (intro screen + home empty state), per the user's provided 21st.dev component.
+
+Files created/modified:
+1. **`src/components/ui/hero-shutter-text.tsx`** (NEW) — the shutter-blinds title animation, adapted from the user's provided component:
+   - Per-character blur reveal (blur(10px) → 0) + three horizontal clip-path slices (top 35% / middle 30% / bottom 35%) sweeping in alternating directions — the "camera shutter" effect.
+   - **Adapted to the site's design**: multi-line support via `lines` prop (our title is two lines), accent colour changed from indigo to **amber** (`text-amber-600 dark:text-amber-400`) to match the site palette, responsive `charClassName` (clamp) instead of the original fixed 15vw fullscreen sizing.
+   - **Accessible**: renders a real `<h1>`/`<h2>` (`headingLevel` prop) with sr-only full text; the animated characters are `aria-hidden`. Replay control = small refresh button with aria-label + rotate-on-hover (Framer Motion).
+   - **Reduced motion**: `useReducedMotion()` skips slices/blur, simple fade instead.
+   - Replay via `AnimatePresence mode="wait"` keyed on a counter (old title fades out, animation restarts).
+   - Fixed the original's descender-clipping risk: `pb-[0.12em] -mb-[0.12em]` on the per-char overflow-hidden wrapper.
+2. **`src/lib/i18n.ts`** — added `'intro.replay'` key to all 4 locales (en/es/it/fr) for the replay button's accessible label.
+3. **`src/components/intro-screen.tsx`** — replaced the static two-line `motion.h1` with `HeroShutterText` (default display sizing `clamp(2.75rem, 9vw, 6rem)`, line 1 foreground, line 2 muted).
+4. **`src/components/dashboard-app.tsx`** — EmptyState h2 replaced with `HeroShutterText` (`headingLevel={2}`, smaller sizing `clamp(1.875rem, 5vw, 3rem)`).
+5. **`src/components/favorites-provider.tsx`** — BUG FIX (pre-existing console error): `getServerSnapshot` returned a fresh `[]` literal on every call → React error "The result of getServerSnapshot should be cached to avoid an infinite loop". Now returns a module-level cached `EMPTY_FAVORITES` array.
+
+Verification with Agent Browser:
+- Intro screen: title animates character-by-character with amber slices; replay button restarts it (verified mid-animation screenshot: blur wave + amber slice bars visible). h1 sr-only "Global Travel Dashboard" present in a11y tree.
+- Home empty state: same animation at smaller size (h2 sr-only "Pick a country, see everything."), replay works, Favorites section + featured countries + footer intact.
+- Mobile 375px: title fits without overflow, layout correct.
+- Dark mode: white/gray title with amber-400 slices clearly visible mid-animation.
+- Language popover still works (opens, lists 4 languages).
+- Regression: France dashboard loads fully (hero, favourite star, live clock 19:38:09 Europe/Paris, meta grid, search bar, photo carousel).
+- Console clean apart from ONE pre-existing benign hydration warning (Radix LanguageSwitcher popover `aria-controls` useId mismatch). **Proven pre-existing** via git stash test: error count identical with my changes stashed. It only affects the aria-controls attribute value; the popover functions normally.
+- Lint clean; dev server compiles without errors (only known Open-Meteo 429 → wttr.in fallback messages).
+
+Stage Summary:
+- The site title (intro landing + home empty state) now has the user's requested shutter-blinds animation, replayable via a small refresh control, fully responsive, dark-mode aware, accessible (sr-only headings, reduced-motion support), and in the site's amber palette.
+- Fixed a pre-existing useSyncExternalStore server-snapshot console error in favorites-provider.
+- Known pre-existing issue (NOT from this task): benign Radix aria-controls hydration warning on the language switcher — present before and after; popover works.

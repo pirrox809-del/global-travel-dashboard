@@ -53,8 +53,13 @@ function getSnapshot(): string[] {
   return favoritesState;
 }
 
+// Cached empty array for the server snapshot — returning a fresh [] literal
+// on every call makes React throw "The result of getServerSnapshot should be
+// cached to avoid an infinite loop".
+const EMPTY_FAVORITES: string[] = [];
+
 function getServerSnapshot(): string[] {
-  return [];
+  return EMPTY_FAVORITES;
 }
 
 // ─── Context ────────────────────────────────────────────────────────────

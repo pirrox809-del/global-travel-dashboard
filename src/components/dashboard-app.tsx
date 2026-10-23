@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useT, useLanguage } from '@/components/language-provider';
 import { useFavorites } from '@/components/favorites-provider';
 import { useCountryList } from '@/hooks/use-country';
+import HeroShutterText from '@/components/ui/hero-shutter-text';
 
 /** Quick-pick shortcuts shown on the empty state. */
 const FEATURED = [
@@ -199,13 +200,15 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
         <Sparkles className="size-3 text-amber-500" />
         {t('empty.badge')}
       </Badge>
-      <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-        {t('empty.title1')}
-        <br />
-        <span className="text-muted-foreground">
-          {t('empty.title2')}
-        </span>
-      </h2>
+      <HeroShutterText
+        headingLevel={2}
+        lines={[
+          { text: t('empty.title1'), className: 'text-foreground' },
+          { text: t('empty.title2'), className: 'text-muted-foreground' },
+        ]}
+        charClassName="text-[clamp(1.875rem,5vw,3rem)]"
+        replayLabel={t('intro.replay')}
+      />
       <p className="mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
         {t('empty.body')}
       </p>

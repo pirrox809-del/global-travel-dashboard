@@ -9,6 +9,7 @@ import { useLanguage } from '@/components/language-provider';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
 import { GlobeCdn } from '@/components/ui/cobe-globe-cdn';
+import HeroShutterText from '@/components/ui/hero-shutter-text';
 
 /**
  * IntroScreen — the landing / hero screen shown on first visit.
@@ -64,18 +65,21 @@ export function IntroScreen({ onEnter }: { onEnter: () => void }) {
           </Badge>
         </motion.div>
 
-        {/* Title — two-line gradient */}
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="text-balance text-5xl font-bold tracking-tighter text-foreground sm:text-7xl lg:text-8xl"
+        {/* Title — shutter-blinds reveal, character by character.
+            Replayable via the small refresh control. */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <span className="block">{t('intro.title1')}</span>
-          <span className="block text-muted-foreground">
-            {t('intro.title2')}
-          </span>
-        </motion.h1>
+          <HeroShutterText
+            lines={[
+              { text: t('intro.title1'), className: 'text-foreground' },
+              { text: t('intro.title2'), className: 'text-muted-foreground' },
+            ]}
+            replayLabel={t('intro.replay')}
+          />
+        </motion.div>
 
         {/* Subtitle */}
         <motion.p
