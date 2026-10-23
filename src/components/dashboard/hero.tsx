@@ -1,9 +1,11 @@
 'use client';
 
-import { CalendarClock, Globe2, Languages, MapPin, Phone, Ruler, Users, Clock, Coins } from 'lucide-react';
+import { CalendarClock, Globe2, Languages, MapPin, Phone, Ruler, Users, Clock, Coins, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import type { CountryStatic } from '@/lib/types';
 import { useLanguage } from '@/components/language-provider';
+import { useFavorites } from '@/components/favorites-provider';
 import { LiveClock } from './live-clock';
 
 /**
@@ -40,13 +42,17 @@ export function CountryHero({ country }: { country: CountryStatic }) {
             ) : (
               <span className="text-5xl sm:text-6xl">{country.flagEmoji ?? '🏳️'}</span>
             )}
-            <div className="min-w-0">
-              <h1 className="truncate text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-                {country.name}
-              </h1>
-              {country.officialName && country.officialName !== country.name ? (
-                <p className="truncate text-sm text-muted-foreground">{country.officialName}</p>
-              ) : null}
+            <div className="min-w-0 flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="truncate text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+                  {country.name}
+                </h1>
+                {country.officialName && country.officialName !== country.name ? (
+                  <p className="truncate text-sm text-muted-foreground">{country.officialName}</p>
+                ) : null}
+              </div>
+              {/* Favorite toggle — star icon, filled when favourited */}
+              <FavoriteToggle code={country.code} />
             </div>
           </div>
 
@@ -137,5 +143,30 @@ function Meta({ icon, label, value }: { icon: React.ReactNode; label: string; va
       </dt>
       <dd className="mt-1 line-clamp-2 text-sm font-medium leading-snug">{value}</dd>
     </div>
+  );
+}
+
+/** Star toggle for marking a country as favourite. Filled when favourited. */
+function FavoriteToggle({ code }: { code: string }) {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const fav = isFavorite(code);
+  return (
+    <button
+      type="button"
+      onClick={() => toggleFavorite(code)}
+      aria-pressed={fav}
+      aria-label={fav ? 'Remove from favourites' : 'Add to favourites'}
+      title={fav ? 'Remove from favourites' : 'Add to favourites'}
+      className="shrink-0 rounded-full p-1.5 transition-colors hover:bg-amber-500/10 focus-visible:outline-2 focus-visible:outline-amber-500"
+    >
+      <Star
+        className={cn(
+          'size-6 transition-colors',
+          fav
+            ? 'fill-amber-400 text-amber-400'
+            : 'text-muted-foreground/40 hover:text-amber-400',
+        )}
+      />
+    </button>
   );
 }

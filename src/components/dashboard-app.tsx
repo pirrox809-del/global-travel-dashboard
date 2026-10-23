@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Globe2, Sparkles } from 'lucide-react';
+import { Globe2, Sparkles, Star } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
@@ -14,7 +14,9 @@ import { IntroScreen } from '@/components/intro-screen';
 import { GlobeCdn } from '@/components/ui/cobe-globe-cdn';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useT } from '@/components/language-provider';
+import { useT, useLanguage } from '@/components/language-provider';
+import { useFavorites } from '@/components/favorites-provider';
+import { useCountryList } from '@/hooks/use-country';
 
 /** Quick-pick shortcuts shown on the empty state. */
 const FEATURED = [
@@ -207,6 +209,8 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
       <p className="mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
         {t('empty.body')}
       </p>
+      {/* Favourites section — shows the user's starred countries first */}
+      <FavoritesSection onPick={onPick} />
       <div className="mt-8 flex flex-wrap justify-center gap-2">
         {FEATURED.map((f, i) => (
           <motion.div
@@ -231,5 +235,53 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
         {t('empty.hint')}
       </p>
     </motion.div>
+  );
+}
+
+/** Favourites quick-pick section — shows the user's starred countries
+ *  as buttons at the top of the empty state, before the featured picks.
+ *  Skipped entirely when no favourites are set. */
+function FavoritesSection({ onPick }: { onPick: (code: string) => void }) {
+  const { favorites } = useFavorites();
+  // Hooks must be called unconditionally (before any early returns).
+  const { data } = useCountryList();
+
+  if (favorites.length === 0) return null;
+  if (!data) return null;
+
+  // Look up the country data (flag + name) for each favourite.
+  const favCountries = favorites
+    .map((code) => data.countries.find((c) => c.code === code))
+    .filter(Boolean) as { code: string; name: string; flagEmoji: string | null }[];
+
+  if (favCountries.length === 0) return null;
+
+  return (
+    <div className="mt-6 flex flex-col items-center gap-2">
+      <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-500/80">
+        <Star className="size-3.5 fill-amber-400 text-amber-400" />
+        Favorites
+      </span>
+      <div className="flex flex-wrap justify-center gap-2">
+        {favCountries.map((f, i) => (
+          <motion.div
+            key={f.code}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 + i * 0.05, ease: 'easeOut' }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPick(f.code)}
+              className="gap-1.5 border-amber-500/30 bg-amber-500/5 backdrop-blur-md transition-all hover:border-amber-500/50 hover:bg-amber-500/10"
+            >
+              <span>{f.flagEmoji ?? '🏳️'}</span>
+              {f.name}
+            </Button>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -4,8 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { useState, type ReactNode } from 'react';
 import { LanguageProvider } from '@/components/language-provider';
+import { FavoritesProvider } from '@/components/favorites-provider';
 
-/** Client-side providers: TanStack Query + next-themes + i18n context. */
+/** Client-side providers: TanStack Query + next-themes + i18n + favourites. */
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
     () =>
@@ -30,7 +31,9 @@ export function Providers({ children }: { children: ReactNode }) {
         enableSystem={false}
         disableTransitionOnChange
       >
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <FavoritesProvider>{children}</FavoritesProvider>
+        </LanguageProvider>
       </NextThemesProvider>
     </QueryClientProvider>
   );

@@ -757,3 +757,46 @@ Stage Summary:
 - The in-memory server cache was cleared by restarting the dev server.
 - France verified: all 19+ data categories are populated with fresh data.
 - The classification card (Global Ranking) code was lost during a filesystem sync issue and is not currently shown — needs to be re-created if the user wants it back.
+
+---
+Task ID: 26
+Agent: main (Z.ai Code)
+Task: Add a favourite-country option/category, and show favourites first on the home page.
+
+Files created/modified:
+1. **`src/components/favorites-provider.tsx`** (NEW) — React context provider that manages the user's favourite countries in localStorage (`gtd-favorites` key). Uses `useSyncExternalStore` for hydration-safe external reads. Provides:
+   - `favorites: string[]` — list of favourited country codes
+   - `isFavorite(code): boolean` — checks if a country is favourited
+   - `toggleFavorite(code)` — adds/removes a country from favourites
+   - All 3 functions share an external store pattern (module-level `favoritesState` + listener set) so the state updates propagate to all subscribers.
+2. **`src/app/providers.tsx`** — added `<FavoritesProvider>` wrapper inside `<LanguageProvider>`.
+3. **`src/components/dashboard/hero.tsx`** — added a **star toggle button** next to the country name:
+   - Lucide `Star` icon, 24px, positioned to the right of the country name + official name
+   - When favourited: `fill-amber-400 text-amber-400` (filled amber star) + aria-pressed=true + aria-label "Remove from favourites"
+   - When not favourited: `text-muted-foreground/40 hover:text-amber-400` (gray outline star) + aria-pressed=false + aria-label "Add to favourites"
+   - Click → `toggleFavorite(country.code)` — instant toggle (no page reload needed).
+4. **`src/components/country-selector.tsx`** — updated the dropdown:
+   - Favourited countries are moved into a dedicated "⭐ Favorites" group that is ALWAYS sorted first (before all region groups).
+   - Each favourited country in the dropdown shows a filled amber star icon.
+   - Non-favourited countries show the capital + MapPin icon as before.
+   - The `useMemo` deps now include `favorites` so the grouping re-computes when favourites change.
+5. **`src/components/dashboard-app.tsx`** — added a **FavoritesSection** component in the EmptyState (home page):
+   - Shows a "Favorites" heading with star icon.
+   - Shows the user's favourited countries as buttons (flag emoji + country name) with amber-tinted styling.
+   - Clicking a favourite button navigates to that country's dashboard (same as FEATURED quick-picks).
+   - Skipped entirely when the user has no favourites (clean home page with just the featured countries).
+   - Positioned ABOVE the FEATURED quick-pick buttons (favourites first, as requested).
+
+Verification with Agent Browser:
+- **Star toggle on hero**: found the star button on the FR dashboard (`aria-label: "Add to favourites"`, `aria-pressed: "false"`). Clicked → aria-label changed to "Remove from favourites", aria-pressed=true, localStorage `gtd-favorites` = `["FR"]`. ✓
+- **Country selector**: opened the dropdown → 7 groups total, FIRST group is "⭐ Favorites" containing "🇫🇷 France". ✓
+- **Home page favourites**: navigated to the empty state (home) → "Favorites" section visible with the France button (flag + name). ✓
+- **VLM check**: confirmed "a 'Favorites' section with a star icon that includes a France button with the French flag. Below it, there is also a featured countries section." ✓
+
+Stage Summary:
+- Users can now star their favourite countries by clicking the star icon in the hero of any country's dashboard.
+- Favourited countries appear:
+  1. In a "⭐ Favorites" group at the TOP of the country selector dropdown (before all region groups).
+  2. As quick-pick buttons in a "Favorites" section at the TOP of the home page (before the featured countries).
+- The favourites are persisted in localStorage (`gtd-favorites`) — they survive page reloads and browser sessions.
+- Lint clean, no console errors.
