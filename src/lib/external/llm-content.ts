@@ -25,15 +25,8 @@
  * demand" (admin button or cron), which is why the dynamic data is NOT
  * generated here — that comes from real APIs (weather/fx/advisory).
  */
-import ZAI from 'z-ai-web-dev-sdk';
 import { db } from '@/lib/db';
-
-// Reuse a single SDK instance (recommended by the skill docs).
-let zaiInstance: Awaited<ReturnType<typeof ZAI.create>> | null = null;
-async function getZai() {
-  if (!zaiInstance) zaiInstance = await ZAI.create();
-  return zaiInstance;
-}
+import { getZai, zaiModel, type ZaiClient } from '@/lib/zai';
 
 /** The shape we ask the LLM to produce. */
 export type LlmCountryPayload = {
@@ -363,6 +356,9 @@ export async function generateCountryPayload(
   languageName: string = 'English',
 ): Promise<LlmCountryPayload> {
   const zai = await getZai();
+  if (!zai) {
+    throw new Error('LLM not configured on this deployment (no ZAI_* env vars, no .z-ai-config file)');
+  }
 
   // Run both LLM calls in parallel.
   const [coreResult, extResult] = await Promise.allSettled([
@@ -410,7 +406,7 @@ export async function generateCountryPayload(
 
 /** Make a single LLM call with the appropriate prompt, with JSON retry. */
 async function llmCallWithRetry(
-  zai: Awaited<ReturnType<typeof ZAI.create>>,
+  zai: ZaiClient,
   country: Parameters<typeof buildUserPrompt>[0],
   languageName: string,
   which: 'core' | 'extended',
@@ -419,6 +415,7 @@ async function llmCallWithRetry(
 
   // Attempt 1: standard prompt.
   const completion1 = await zai.chat.completions.create({
+    model: zaiModel(),
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
@@ -434,6 +431,7 @@ async function llmCallWithRetry(
 
   // Attempt 2: stricter prompt.
   const completion2 = await zai.chat.completions.create({
+    model: zaiModel(),
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },

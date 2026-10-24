@@ -11,9 +11,12 @@
  * Response: { locale: string, messages: Record<string, string> }
  */
 import { NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+import { getZai, zaiModel } from '@/lib/zai';
 import { MESSAGES_EN, getLLMLanguageName, type MessageKey } from '@/lib/i18n';
 import { cache, TTL } from '@/lib/cache';
+
+// Translating the whole dictionary in one completion can be slow.
+export const maxDuration = 60;
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +43,10 @@ export async function GET(
 
   // Use the z-ai LLM to translate the English dictionary.
   try {
-    const zai = await ZAI.create();
+    const zai = await getZai();
+    if (!zai) {
+      throw new Error('LLM not configured on this deployment');
+    }
     const languageName = getLLMLanguageName(locale);
     const entries = Object.entries(MESSAGES_EN);
 
@@ -61,6 +67,7 @@ export async function GET(
 ${sourceJson}`;
 
     const response = await zai.chat.completions.create({
+      model: zaiModel(),
       messages: [
         { role: 'system', content: 'You are a JSON translation API. You output ONLY valid JSON.' },
         { role: 'user', content: prompt },

@@ -18,6 +18,9 @@ import { NextResponse } from 'next/server';
 import { aggregateCountry } from '@/lib/aggregate';
 import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n';
 
+// First-visit LLM generation can take 25-50s (two parallel calls + retry).
+export const maxDuration = 60;
+
 export const dynamic = 'force-dynamic';
 
 const VALID_LOCALES: Locale[] = ['en', 'es', 'it', 'fr'];

@@ -54,7 +54,7 @@ Vercel works without configuration: import the repository and deploy. The pre-po
 
 Two things worth knowing:
 
-- The AI generator reads credentials from `.z-ai-config` (any OpenAI-compatible endpoint). Without credentials nothing breaks — live data and pre-generated briefs keep working, only new generation is skipped.
+- Travel AI needs LLM credentials: either a `.z-ai-config` file or `ZAI_BASE_URL` + `ZAI_API_KEY` environment variables (plus `ZAI_MODEL` when the provider requires a model name). Any OpenAI-compatible endpoint works. Without credentials nothing breaks — live data and pre-generated briefs keep working, the chatbot just says it is not enabled.
 - On serverless, writes are per-instance and ephemeral. If you want generated briefs to survive restarts, host on Railway or Render with a persistent disk and set `DATABASE_URL=file:/data/custom.db`.
 
 ## Project structure
@@ -126,7 +126,7 @@ Su Vercel funziona senza alcuna configurazione: importa la repository e fai depl
 
 Due cose da sapere:
 
-- Il generatore AI legge le credenziali da `.z-ai-config` (qualsiasi endpoint OpenAI-compatibile). Senza credenziali nulla si rompe: i dati live e i brief pre-generati continuano a funzionare, viene saltata solo la generazione di nuovi contenuti.
+- Travel AI ha bisogno di credenziali LLM: un file `.z-ai-config` oppure le variabili d'ambiente `ZAI_BASE_URL` + `ZAI_API_KEY` (con `ZAI_MODEL` se il provider lo richiede). Va bene qualsiasi endpoint OpenAI-compatibile. Senza credenziali nulla si rompe: i dati live e i brief pre-generati continuano a funzionare, solo la chat resta disattivata.
 - Su serverless le scritture sono per-istanza ed effimere. Per conservare i brief generati, usa Railway o Render con disco persistente e `DATABASE_URL=file:/data/custom.db`.
 
 </details>

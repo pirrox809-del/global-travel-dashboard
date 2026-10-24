@@ -10,14 +10,10 @@
  * light: short context, no tools, no streaming, in-memory rate limiting.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import ZAI from 'z-ai-web-dev-sdk';
+import { getZai, zaiModel } from '@/lib/zai';
 
-// Reuse a single SDK instance (recommended by the skill docs).
-let zaiInstance: Awaited<ReturnType<typeof ZAI.create>> | null = null;
-async function getZai() {
-  if (!zaiInstance) zaiInstance = await ZAI.create();
-  return zaiInstance;
-}
+// LLM replies can take well past the ~10s serverless default.
+export const maxDuration = 60;
 
 const VALID_LOCALES = new Set(['en', 'es', 'it', 'fr']);
 const LANG_NAME: Record<string, string> = {
@@ -93,7 +89,7 @@ export async function POST(req: NextRequest) {
       'local';
     if (rateLimited(ip)) {
       return NextResponse.json(
-        { error: 'Too many requests — slow down a little.' },
+        { error: 'rate_limited' },
         { status: 429 },
       );
     }
@@ -126,7 +122,12 @@ export async function POST(req: NextRequest) {
     }
 
     const zai = await getZai();
+    if (!zai) {
+      // No credentials on this deployment (env vars or config file).
+      return NextResponse.json({ error: 'not_configured' }, { status: 503 });
+    }
     const completion = await zai.chat.completions.create({
+      model: zaiModel(),
       messages: [
         { role: 'assistant', content: systemPrompt(locale) },
         ...messages,
@@ -142,6 +143,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply });
   } catch (err) {
     console.error('[api/chat] failed:', err);
-    return NextResponse.json({ error: 'Travel AI is unavailable right now.' }, { status: 500 });
+    return NextResponse.json({ error: 'unavailable' }, { status: 500 });
   }
 }

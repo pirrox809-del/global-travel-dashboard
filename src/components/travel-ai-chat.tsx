@@ -17,6 +17,7 @@ import { RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PromptInput } from '@/components/ui/ai-chat-input';
 import { useLanguage } from '@/components/language-provider';
+import type { MessageKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 interface ChatMessage {
@@ -60,6 +61,8 @@ export function TravelAIChat() {
     setMessages(history);
     setBusy(true);
 
+    // Distinguish failure kinds so each gets a clear, localized message.
+    let failure: 'not_configured' | 'rate_limited' | 'generic' = 'generic';
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -70,10 +73,18 @@ export function TravelAIChat() {
         }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.reply) throw new Error(data?.error ?? `HTTP ${res.status}`);
+      if (!res.ok || !data?.reply) {
+        if (res.status === 503 || data?.error === 'not_configured') failure = 'not_configured';
+        else if (res.status === 429 || data?.error === 'rate_limited') failure = 'rate_limited';
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
       setMessages((prev) => [...prev, { role: 'assistant', content: String(data.reply) }]);
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: t('chat.error') }]);
+      const key: MessageKey =
+        failure === 'not_configured' ? 'chat.unconfigured'
+        : failure === 'rate_limited' ? 'chat.ratelimit'
+        : 'chat.error';
+      setMessages((prev) => [...prev, { role: 'assistant', content: t(key) }]);
     } finally {
       setBusy(false);
     }
