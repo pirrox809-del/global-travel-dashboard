@@ -974,3 +974,22 @@ Stage Summary:
 - AI vincolata alle 4 lingue del sito via system prompt rinforzato
 - Nuovo logo utente integrato in FAB/header/saluto/chip; rimosso ogni icona Plane da Travel AI; asset: public/travel-ai-logo.png
 - File: src/components/ui/ai-chat-input.tsx, src/components/travel-ai-chat.tsx, src/app/api/chat/route.ts, public/travel-ai-logo.png
+
+---
+Task ID: 34
+Agent: Z.ai Code (main)
+Task: Pubblicare il progetto su GitHub (richiesta utente: "mettere questo progetto su Github, passaggi semplici")
+
+Work Log:
+- Verificato stato: repo git già inizializzato (main, tutto committato), README presente, .gitignore corretto
+- Scoperto .env tracciato in git (contiene solo DATABASE_URL SQLite, nessun segreto) → git rm --cached .env + commit "chore: stop tracking .env (keep local only)"
+- Reinstallata GitHub CLI (binary 2.62.0 in ~/.local/bin/gh)
+- Primo tentativo device flow con nohup fallito (processo morto prima dello scambio token, utente aveva già autorizzato) → ripetuto con device flow manuale via API curl (client_id pubblico gh CLI 178c6fc778ccc68e1d6a, scope repo,workflow,read:org,gist), token scambiato al secondo "fatto" utente
+- gh auth login --with-token → account pirrox809-del
+- gh repo create global-travel-dashboard --public --source=. --remote=origin --push → push su main riuscito
+- Verifica: repo PUBLIC, 264 file, ultimo commit corretto, .env NON presente nella repo (404 su API contents)
+
+Stage Summary:
+- Repo live: https://github.com/pirrox809-del/global-travel-dashboard (public, branch main, 264 file)
+- .env escluso dal tracciamento (resta solo locale); nessun segreto nella repo (DATABASE_URL è un percorso SQLite locale)
+- Autenticazione gh salvata in ~/.config/gh/hosts.yml per usi futuri (es. deploy Vercel)
