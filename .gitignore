@@ -61,3 +61,12 @@ prompt
 server.log
 # Skills directory
 /skills/
+# sandbox-only artifacts (not needed for deployment)
+/download
+/mini-services
+/examples
+/agent-ctx
+/tool-results
+/.zscripts
+/Caddyfile
+/worklog.md
