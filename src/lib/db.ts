@@ -1,4 +1,63 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { PrismaClient } from '@prisma/client'
+
+/**
+ * Runtime DATABASE_URL resolution.
+ *
+ * Locally (and in the sandbox) `.env` provides DATABASE_URL and everything
+ * works as-is. On Vercel, `.env` is intentionally NOT committed (security),
+ * so there is no DATABASE_URL — Prisma would throw
+ * "Environment variable not found: DATABASE_URL" and every DB-backed API
+ * route would return 500.
+ *
+ * Fix: if no DATABASE_URL is present, locate the committed SQLite file
+ * (db/custom.db) relative to the serverless working directory and use it.
+ * On Vercel the function filesystem is READ-ONLY, so first copy the DB to
+ * /tmp (writable) so Prisma can create journal/WAL files and the app can
+ * persist LLM-generated content (ephemeral per lambda instance — fine).
+ */
+function resolveDatabaseUrl(): string {
+  const explicit = process.env.DATABASE_URL;
+  if (explicit) return explicit;
+
+  const candidates = [
+    path.join(process.cwd(), 'db', 'custom.db'),
+    path.join(process.cwd(), 'prisma', 'db', 'custom.db'),
+    path.join(process.cwd(), '..', 'db', 'custom.db'),
+  ];
+  const source = candidates.find((p) => fs.existsSync(p));
+
+  if (!source) {
+    throw new Error(
+      '[db] No DATABASE_URL set and no SQLite file found (looked in: ' +
+        candidates.join(', ') +
+        '). Set DATABASE_URL in your environment.',
+    );
+  }
+
+  // Serverless platforms (Vercel) mount the bundle read-only: copy the
+  // committed DB to /tmp so SQLite can write journals and the app can save
+  // generated content. Only pays a one-time ~0.5MB copy per lambda instance.
+  if (process.env.VERCEL) {
+    const tmp = path.join(os.tmpdir(), 'custom.db');
+    try {
+      if (!fs.existsSync(tmp) || fs.statSync(tmp).size !== fs.statSync(source).size) {
+        fs.copyFileSync(source, tmp);
+      }
+      return `file:${tmp}`;
+    } catch {
+      // If /tmp is unavailable, fall back to the read-only file (queries
+      // still work — only writes would fail).
+      return `file:${source}`;
+    }
+  }
+
+  return `file:${source}`;
+}
+
+process.env.DATABASE_URL ??= resolveDatabaseUrl();
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
