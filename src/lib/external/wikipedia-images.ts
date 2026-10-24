@@ -65,6 +65,49 @@ async function fetchMediaListPhotos(articleTitle: string, maxPhotos = 6): Promis
   }) as Promise<CountryPhoto[]>;
 }
 
+/**
+ * Wikimedia Commons category/keyword search — a real-photos fallback for small
+ * countries whose Wikipedia article media-list is thin (e.g. tiny territories,
+ * islands). Searches the Commons repository by country name and returns real
+ * JPG/PNG images, skipping SVGs/maps/flags/logos just like the other sources.
+ */
+async function fetchCommonsPhotos(query: string, max = 6): Promise<CountryPhoto[]> {
+  if (!query) return [];
+  const key = `wiki:commons:${query}`;
+  return cache.wrap(key, TTL.countryMeta, async () => {
+    try {
+      const url =
+        'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+        '&generator=search&gsrnamespace=6&gsrlimit=' + (max + 6) +
+        '&gsrsearch=' + encodeURIComponent(`${query} landscape OR city OR landmark`) +
+        '&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=640';
+      const res = await fetch(url, { headers: WIKI_HEADERS, next: { revalidate: TTL.countryMeta } });
+      if (!res.ok) return [];
+      const j = await res.json() as {
+        query?: { pages?: Record<string, { title?: string; imageinfo?: Array<{ url: string; extmetadata?: { ImageDescription?: { value: string } } }> }> };
+      };
+      const pages = Object.values(j.query?.pages ?? {});
+      const exclude = /flag|coat|seal|locator|map|diagram|chart|graph|symbol|emble|svg|gif|logo|icon|commons|location|orthophot|relief/i;
+      const photos: CountryPhoto[] = [];
+      for (const p of pages) {
+        const ii = p.imageinfo?.[0];
+        if (!ii?.url) continue;
+        if (/\.(svg|gif)$/i.test(ii.url)) continue;
+        if (exclude.test(p.title ?? '')) continue;
+        photos.push({
+          image: ii.url,
+          title: (p.title ?? '').replace('File:', '').replace(/\.[^.]+$/, '').replace(/_/g, ' ').trim(),
+          caption: ii.extmetadata?.ImageDescription?.value?.replace(/<[^>]+>/g, '').slice(0, 120) || query,
+        });
+        if (photos.length >= max) break;
+      }
+      return photos;
+    } catch {
+      return [];
+    }
+  }) as Promise<CountryPhoto[]>;
+}
+
 export type CountryPhoto = {
   image: string;
   title: string;
@@ -141,14 +184,22 @@ export async function getCountryPhotos(
     if (poi.city && !poiTitles.includes(poi.city)) poiTitles.push(poi.city);
   }
 
-  const [poiResults, capitalPhotos, countryPhotos] = await Promise.all([
+  // Country article lead image is a strong single-photo source for tiny
+  // territories whose media-list is sparse (e.g. Tuvalu, Niue).
+  const [poiResults, capitalPhotos, countryPhotos, countryLead] = await Promise.all([
     Promise.all(poiTitles.map(fetchWikiImage)),
     capital ? fetchMediaListPhotos(capital, maxPhotos) : Promise.resolve([]),
     fetchMediaListPhotos(countryName, maxPhotos),
+    fetchWikiImage(countryName),
   ]);
 
-  // Combine: POI photos first, then capital, then country article.
-  const allPhotos = [...poiResults.filter(Boolean), ...capitalPhotos, ...countryPhotos];
+  // Combine: POI photos first, then capital, then country article, then lead.
+  const allPhotos = [
+    ...poiResults.filter(Boolean),
+    ...capitalPhotos,
+    ...countryPhotos,
+    ...(countryLead ? [countryLead] : []),
+  ];
 
   // Dedupe by image URL, cap at maxPhotos.
   const seen = new Set<string>();
@@ -158,6 +209,22 @@ export async function getCountryPhotos(
     seen.add(p.image);
     photos.push(p);
     if (photos.length >= maxPhotos) break;
+  }
+
+  // Fallback: small countries often still have too few photos — search
+  // Wikimedia Commons directly by country name (and capital) to fill the rest.
+  if (photos.length < maxPhotos) {
+    const queries = [countryName, capital].filter(Boolean) as string[];
+    for (const q of queries) {
+      if (photos.length >= maxPhotos) break;
+      const commons = await fetchCommonsPhotos(q, maxPhotos - photos.length);
+      for (const p of commons) {
+        if (seen.has(p.image)) continue;
+        seen.add(p.image);
+        photos.push(p);
+        if (photos.length >= maxPhotos) break;
+      }
+    }
   }
 
   return photos;

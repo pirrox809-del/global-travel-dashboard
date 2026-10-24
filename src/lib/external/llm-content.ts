@@ -360,11 +360,19 @@ export async function generateCountryPayload(
     throw new Error('LLM not configured on this deployment (no ZAI_* env vars, no .z-ai-config file)');
   }
 
-  // Run both LLM calls in parallel.
-  const [coreResult, extResult] = await Promise.allSettled([
-    llmCallWithRetry(zai, country, languageName, 'core'),
-    llmCallWithRetry(zai, country, languageName, 'extended'),
-  ]);
+  // Run both LLM calls. Parallel by default; serialized when LLM_SERIAL=1
+  // (used by the bulk pre-generation script to stay under gateway rate limits).
+  const runOne = (which: 'core' | 'extended') =>
+    llmCallWithRetry(zai, country, languageName, which)
+      .then((value) => ({ status: 'fulfilled' as const, value }))
+      .catch((reason) => ({ status: 'rejected' as const, reason }));
+  const [coreResult, extResult] =
+    process.env.LLM_SERIAL === '1'
+      ? await (async () => [await runOne('core'), await runOne('extended')])()
+      : await Promise.allSettled([
+          llmCallWithRetry(zai, country, languageName, 'core'),
+          llmCallWithRetry(zai, country, languageName, 'extended'),
+        ]);
 
   // If both failed, throw. If one failed, use the other's data + defaults.
   if (coreResult.status === 'rejected' && extResult.status === 'rejected') {

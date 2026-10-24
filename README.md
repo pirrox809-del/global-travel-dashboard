@@ -1,6 +1,6 @@
 # Global Travel Dashboard
 
-A travel dashboard for 189 countries. Live weather, exchange rates, travel advisories, earthquakes and economic data on one page, next to a short AI-written brief — overview, culture, food, places, prices — generated the first time you open a country and stored in the database after that.
+A travel dashboard for 250 countries. Live weather, exchange rates, travel advisories, earthquakes and economic data on one page, next to a short AI-written brief — overview, culture, food, places, prices — generated the first time you open a country and stored in the database after that.
 
 **[Live demo](https://global-travel-dashboard.vercel.app)** · [MIT license](LICENSE)
 
@@ -92,7 +92,7 @@ Each data source remains subject to its own terms of use.
 
 ### Global Travel Dashboard
 
-Dashboard di viaggio per 189 paesi: meteo live, tassi di cambio, avvisi di viaggio, terremoti e dati economici in una sola pagina, insieme a una breve guida scritta dall'AI — panoramica, cultura, cibo, luoghi, prezzi — generata al primo accesso e salvata nel database.
+Dashboard di viaggio per 250 paesi: meteo live, tassi di cambio, avvisi di viaggio, terremoti e dati economici in una sola pagina, insieme a una breve guida scritta dall'AI — panoramica, cultura, cibo, luoghi, prezzi — generata al primo accesso e salvata nel database.
 
 **[Demo live](https://global-travel-dashboard.vercel.app)** — senza registrazione né configurazione.
 
