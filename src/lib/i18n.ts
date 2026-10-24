@@ -948,6 +948,10 @@ const MESSAGES = {
 
 export type MessageKey = keyof Dict;
 
+/** English dictionary — canonical source for on-the-fly LLM translations
+ *  (used by /api/i18n/[locale] to translate any extra locale). */
+export const MESSAGES_EN: Record<MessageKey, string> = MESSAGES.en;
+
 /** Region name translation (closed set: ~6 region values from the dataset). */
 const REGION_TRANSLATIONS: Record<Locale, Record<string, string>> = {
   en: { Africa: 'Africa', Americas: 'Americas', Asia: 'Asia', Europe: 'Europe', Oceania: 'Oceania', Antarctic: 'Antarctic' },
