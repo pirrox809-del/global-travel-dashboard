@@ -993,3 +993,19 @@ Stage Summary:
 - Repo live: https://github.com/pirrox809-del/global-travel-dashboard (public, branch main, 264 file)
 - .env escluso dal tracciamento (resta solo locale); nessun segreto nella repo (DATABASE_URL è un percorso SQLite locale)
 - Autenticazione gh salvata in ~/.config/gh/hosts.yml per usi futuri (es. deploy Vercel)
+
+---
+Task ID: 35
+Agent: Z.ai Code (main)
+Task: Preparare il deploy Vercel e guidare l'utente (utente ha Vercel già collegato a GitHub)
+
+Work Log:
+- Check pre-deploy: db/custom.db già in git (476KB, dati pre-seeded inclusi), lockfile bun.lock, schema Prisma con url env DATABASE_URL
+- Trovati 2 ostacoli: ① next.config.ts output:"standalone" (incompatibile con Vercel) → reso condizionale: process.env.VERCEL ? undefined : "standalone"; ② script build con cp standalone (sandbox-only) → aggiunto "vercel-build": "prisma generate && next build" (Vercel usa questo script automaticamente)
+- Confermato da .env.example: DATABASE_URL corretto per Vercel = file:../db/custom.db (relativo a prisma/schema.prisma); senza .z-ai-config il sito funziona, solo i brief LLM non rigenerano (quelli pre-seeded in db restano visibili)
+- Push fallito per credential helper mancante → gh auth setup-git → push OK (commit 88dbd05)
+
+Stage Summary:
+- Repo pronta per Vercel: output condizionale + vercel-build con prisma generate
+- Istruzioni fornite all'utente: Import progetto su Vercel + env var DATABASE_URL=file:../db/custom.db + Deploy
+- Attesa onesta: browsing/live-data/favorites OK; Travel AI chat e generazione nuovi brief LLM degradate senza credenziali .z-ai-config (mai committarle in repo pubblica)
