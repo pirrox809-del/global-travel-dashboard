@@ -902,3 +902,18 @@ Stage Summary:
 - Ogni dashboard paese ora mostra: Densità di popolazione, Forma di governo, Capo di Stato (con titolo corretto per monarchie/teocrazie/repubbliche), Capo di Governo quando pertinente — tutti localizzati in en/es/it/fr e aggiornati a ottobre 2026 (fonte Wikipedia live)
 - Architettura: governo = dataset statico curato client-side (src/lib/government-data.ts); densità calcolata al volo; popolazione ora realmente nel DB grazie al backfill World Bank (annuale, lazy refresh 24h)
 - Per aggiornare i leader in futuro: modificare l'entry ISO2 in government-data.ts (fonte: Wikipedia "List of current heads of state and government")
+
+---
+Task ID: 30
+Agent: main (Z.ai Code)
+Task: Aggiungere la bandiera di stato accanto a ogni lingua nel pannello di selezione lingue (en/es/it/fr)
+
+Work Log:
+- Scoperta: il campo `flag` in LOCALES (i18n.ts) conteneva già emoji 🇬🇧🇪🇸🇮🇹🇫🇷, ma le emoji regional-indicator NON si renderizzano su Windows (appaiono come lettere "GB"/"IT") → sostituite con bandiere SVG inline
+- Creato src/components/ui/flag-icon.tsx: FlagIcon con SVG vettoriali per le 4 lingue — Union Jack ufficiale (costruzione con clipPath offset, ID unici via useId sanitizzato), Spagna (fascia gialla 1:2:1), Italia e Francia (tricolori verticali); wrapper arrotondato con ring adattivo light/dark (ring-black/15 / dark:ring-white/20)
+- language-switcher.tsx aggiornato: bandiera SVG nel pannello dropdown (w-6 h-4, gap-2.5), bandiera della lingua corrente anche nel pulsante trigger (sostituisce l'icona globe, h-3 w-[18px] + codice lingua); popover allargato w-44→w-48; rimossa import Languages inutilizzata
+
+Stage Summary:
+- Il selettore lingue mostra ora una bandiera vettoriale nitida accanto a ogni lingua (English/Union Jack, Español/Spagna, Italiano/Italia, Français/Francia) su OGNI piattaforma, Windows incluso
+- Verifica agent-browser: pannello desktop light (4 bandiere corrette + check sulla selezionata), switch IT funziona (trigger diventa 🇮🇹 IT, UI tradotta), dark mode leggibile, mobile 375px allineato, 0 errori console, lint pulito
+- Le emoji flag restano in LOCALES come dati ma non sono più renderizzate; componente riusabile FlagIcon per future aggiunte lingue
