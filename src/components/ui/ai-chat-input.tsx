@@ -12,8 +12,16 @@
 
 import * as React from 'react';
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Plane } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
+
+// UI locale → BCP-47 tag for the Web Speech API.
+const VOICE_LANG: Record<string, string> = {
+  en: 'en-US',
+  it: 'it-IT',
+  es: 'es-ES',
+  fr: 'fr-FR',
+};
 
 // ----------------------------------------------------------------------
 // Transition Physics
@@ -95,6 +103,8 @@ export interface PromptInputProps {
   micAria?: string;
   stopAria?: string;
   promptAria?: string;
+  /** UI locale — used to pick the speech-recognition language. */
+  voiceLocale?: string;
 }
 
 // ----------------------------------------------------------------------
@@ -113,6 +123,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
       micAria = 'Use voice input',
       stopAria = 'Stop voice input',
       promptAria = 'Prompt',
+      voiceLocale,
     },
     ref
   ) => {
@@ -131,6 +142,10 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
     const rafRef = useRef<number | null>(null);
     const recognitionRef = useRef<any>(null);
     const demoIntervalRef = useRef<number | null>(null);
+    // True while the user wants to dictate. The Web Speech API ends sessions
+    // on its own all the time (silence timeouts, 'aborted', mic hand-offs),
+    // so onend must distinguish "user stopped" from "service dropped us".
+    const wantRecordingRef = useRef(false);
 
     const [containerHeight, setContainerHeight] = useState(116);
     const [textareaHeight, setTextareaHeight] = useState(68);
@@ -182,6 +197,7 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
 
     // --- Voice Recording Logic ---
     const stopRecording = useCallback(() => {
+      wantRecordingRef.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.stop();
         recognitionRef.current = null;
@@ -268,9 +284,12 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
         const recognition = new SR();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = navigator.language || 'en-US';
+        const mappedLang = VOICE_LANG[voiceLocale ?? ''];
+        recognition.lang = mappedLang ?? navigator.language ?? 'en-US';
 
         let baseline = valueRef.current;
+        let restartTimer: number | null = null;
+        let failures = 0;
 
         recognition.onresult = (event: any) => {
           let interimTranscript = '';
@@ -291,15 +310,46 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           handleValueChange((baseline + (interimTranscript ? ' ' + interimTranscript : '')).trim());
         };
 
-        recognition.onerror = () => stopRecording();
-        recognition.onend = () => stopRecording();
+        recognition.onerror = (event: any) => {
+          const err = String(event?.error ?? '');
+          // Only permission errors are truly fatal. Everything else
+          // ('no-speech', 'aborted', 'network', 'audio-capture', …) is
+          // transient — counting them lets onend retry a few times.
+          if (err === 'not-allowed' || err === 'service-not-allowed') {
+            stopRecording();
+            return;
+          }
+          if (err && err !== 'no-speech' && err !== 'aborted') failures += 1;
+        };
+
+        recognition.onend = () => {
+          // Chrome ends the stream after silence, hiccup or mic hand-off.
+          // While the user still wants to record, quietly resume so the
+          // dictation does not cancel itself mid-sentence.
+          if (!wantRecordingRef.current) return;
+          if (failures >= 5) {
+            stopRecording();
+            return;
+          }
+          if (restartTimer !== null) window.clearTimeout(restartTimer);
+          restartTimer = window.setTimeout(() => {
+            restartTimer = null;
+            if (!wantRecordingRef.current) return;
+            try {
+              recognition.start();
+            } catch {
+              /* start() while already active — ignore */
+            }
+          }, 250);
+        };
 
         recognitionRef.current = recognition;
+        wantRecordingRef.current = true;
         recognition.start();
       } else {
         stopRecording();
       }
-    }, [handleValueChange, stopRecording]);
+    }, [handleValueChange, stopRecording, voiceLocale]);
 
     // Keep textarea auto-scrolled to bottom while recording
     useEffect(() => {
@@ -468,7 +518,14 @@ export const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
               )}
               aria-live="polite"
             >
-              <Plane className={cn('size-3.5 transition-transform duration-500', busy && 'animate-pulse')} />
+              <Image
+                src="/travel-ai-logo.png"
+                alt=""
+                width={14}
+                height={14}
+                aria-hidden
+                className={cn('dark:invert', busy && 'animate-pulse')}
+              />
               <span className="text-xs font-semibold">
                 <MorphingText text={busy ? busyLabel : brandLabel} />
               </span>

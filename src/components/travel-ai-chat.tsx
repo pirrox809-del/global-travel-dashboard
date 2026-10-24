@@ -12,7 +12,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plane, RotateCcw, X } from 'lucide-react';
+import Image from 'next/image';
+import { RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PromptInput } from '@/components/ui/ai-chat-input';
 import { useLanguage } from '@/components/language-provider';
@@ -80,7 +81,7 @@ export function TravelAIChat() {
 
   return (
     <>
-      {/* Floating action button — Plane ↔ X morph */}
+      {/* Floating action button — logo ↔ X morph */}
       <motion.button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -95,11 +96,11 @@ export function TravelAIChat() {
         transition={{ duration: 0.5, delay: 0.8, scale: { duration: 0.6 } }}
         whileHover={{ scale: 1.07 }}
         whileTap={{ scale: 0.92 }}
-        className="fixed bottom-5 right-5 z-50 flex size-12 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg shadow-amber-600/30 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="fixed bottom-5 right-5 z-50 flex size-12 items-center justify-center rounded-full bg-white text-neutral-900 shadow-lg shadow-black/20 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {/* Soft ping to draw attention (hidden once opened) */}
         {!open && (
-          <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-amber-500/40 [animation-duration:2.5s]" aria-hidden="true" />
+          <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-foreground/20 [animation-duration:2.5s]" aria-hidden="true" />
         )}
         <AnimatePresence mode="wait" initial={false}>
           {open ? (
@@ -115,14 +116,14 @@ export function TravelAIChat() {
             </motion.span>
           ) : (
             <motion.span
-              key="plane"
+              key="logo"
               initial={{ rotate: 90, opacity: 0, scale: 0.6 }}
               animate={{ rotate: 0, opacity: 1, scale: 1 }}
               exit={{ rotate: -90, opacity: 0, scale: 0.6 }}
               transition={{ duration: 0.2 }}
               className="flex"
             >
-              <Plane className="size-5" />
+              <Image src="/travel-ai-logo.png" alt="" width={28} height={28} aria-hidden />
             </motion.span>
           )}
         </AnimatePresence>
@@ -143,8 +144,8 @@ export function TravelAIChat() {
           >
             {/* Header */}
             <header className="flex items-center gap-2.5 border-b border-border/50 bg-background/40 px-4 py-3">
-              <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white">
-                <Plane className="size-4" />
+              <span className="relative flex size-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+                <Image src="/travel-ai-logo.png" alt="" width={18} height={18} aria-hidden />
                 <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card bg-emerald-500" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1 leading-tight">
@@ -181,7 +182,14 @@ export function TravelAIChat() {
             >
               {/* Greeting bubble (static, always first) */}
               <Bubble>
-                <Plane className="mr-1.5 inline size-3.5 -translate-y-px text-amber-500" aria-hidden="true" />
+                <Image
+                  src="/travel-ai-logo.png"
+                  alt=""
+                  width={14}
+                  height={14}
+                  aria-hidden
+                  className="mr-1.5 inline -translate-y-px dark:invert"
+                />
                 {t('chat.greeting')}
               </Bubble>
 
@@ -225,6 +233,7 @@ export function TravelAIChat() {
                 micAria={t('chat.voice')}
                 stopAria={t('chat.stopVoice')}
                 promptAria={t('chat.prompt')}
+                voiceLocale={locale}
               />
             </div>
           </motion.section>

@@ -26,6 +26,12 @@ const LANG_NAME: Record<string, string> = {
   it: 'Italian',
   fr: 'French',
 };
+const LANG_NATIVE: Record<string, string> = {
+  en: 'English',
+  es: 'Español',
+  it: 'Italiano',
+  fr: 'Français',
+};
 const MAX_MESSAGES = 12;
 const MAX_CHARS = 1500;
 
@@ -50,6 +56,7 @@ function rateLimited(ip: string): boolean {
 
 function systemPrompt(locale: string): string {
   const lang = LANG_NAME[locale] ?? 'English';
+  const native = LANG_NATIVE[locale] ?? 'English';
   return [
     'You are Travel AI, the friendly in-app assistant of the "Global Travel Dashboard" website.',
     '',
@@ -66,7 +73,9 @@ function systemPrompt(locale: string): string {
     '  toggle dark mode, replay the title animation. Data sources are listed in the footer.',
     '',
     'YOUR JOB:',
-    `- Always answer in ${lang}.`,
+    `- LANGUAGE RULE (highest priority): ALWAYS reply ONLY in ${lang} (${native}).`,
+    `  The website speaks exactly four languages — English, Italiano, Español, Français — and the user has selected ${lang}.`,
+    '  Never reply in any other language and never mix languages, even if the user writes in a different one.',
     '- Help users understand and use the website: explain what each card shows, how to find a country, favourite it, compare it, what the data sources are.',
     '- Answer general travel questions about countries (culture, food, safety, when to go, what to see).',
     '- Be concise: at most ~120 words. Short paragraphs or a few bullet points. No markdown headers, no links.',

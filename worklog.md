@@ -954,3 +954,23 @@ Stage Summary:
 - Le 4 bandiere (EN/ES/IT/FR) nel pannello lingue non hanno più alcun bordo/striscia scura
 - File modificato: solo src/components/ui/flag-icon.tsx
 - Nota: in light mode la banda bianca centrale di IT/FR si fonde col fondo chiaro del pannello (comportamento naturale senza bordi); in dark mode ben visibili
+
+---
+Task ID: 33
+Agent: Z.ai Code (main)
+Task: Travel AI — fix messaggio vocale che si annulla da solo, lingua AI sempre limitata a en/it/es/fr, sostituzione branding con logo utente (senza testo)
+
+Work Log:
+- Diagnosi bug vocale (ai-chat-input.tsx): recognition.onerror/onend chiamavano sempre stopRecording(), ma il Web Speech API termina la sessione da solo (silenzio, 'aborted', hand-off mic) → dettatura annullata immediatamente
+- Fix: aggiunto wantRecordingRef; solo 'not-allowed'/'service-not-allowed' sono fatali; onend riavvia la sessione dopo 250ms finché l'utente vuole registrare (max 5 fallimenti consecutivi, guard InvalidStateError)
+- Aggiunta prop voiceLocale + mappa VOICE_LANG (en→en-US, it→it-IT, es→es-ES, fr→fr-FR): il microfono ascolta nella lingua della UI
+- route.ts: system prompt con LANGUAGE RULE a massima priorità — risponde SOLO in English/Italiano/Español/Français (nomi nativi), mai altre lingue, mai misto
+- Logo: elaborato upload (640x640 L) con numpy/PIL — rilevato il cerchio (righe 169-393), escluso testo "PLANE LOGO"/tagline (righe 418+), luminosità→alpha (nero su trasparente), salvato public/travel-ai-logo.png (256x256)
+- Branding sostituito ovunque: FAB (badge bianco + logo, ping neutro bg-foreground/20, X quando aperto), header pannello (badge bianco + logo + punto verde), saluto e brand chip (logo inline con dark:invert)
+- Verifica browser: FAB col nuovo logo, pannello con logo in header/saluto/chip, messaggio inviato → risposta in EN con UI en (POST /api/chat 200), dark mode pulita, click mic in headless si chiude senza crash, 0 errori console, lint pulito
+
+Stage Summary:
+- Bug vocale risolto: la registrazione non si annulla più da sola (auto-restart + solo errori di permesso fatali); lingua mic = lingua UI
+- AI vincolata alle 4 lingue del sito via system prompt rinforzato
+- Nuovo logo utente integrato in FAB/header/saluto/chip; rimosso ogni icona Plane da Travel AI; asset: public/travel-ai-logo.png
+- File: src/components/ui/ai-chat-input.tsx, src/components/travel-ai-chat.tsx, src/app/api/chat/route.ts, public/travel-ai-logo.png
