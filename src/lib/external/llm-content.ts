@@ -25,6 +25,7 @@
  * demand" (admin button or cron), which is why the dynamic data is NOT
  * generated here — that comes from real APIs (weather/fx/advisory).
  */
+import { PrismaClient } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getZai, zaiModel, type ZaiClient } from '@/lib/zai';
 
@@ -480,10 +481,13 @@ export async function persistCountryPayload(
   countryCode: string,
   p: LlmCountryPayload,
   language: string = 'en',
+  // Optional Prisma client override — lets the cron route persist into a
+  // disposable /tmp copy of the SQLite database on serverless hosts.
+  client: PrismaClient = db,
 ) {
   // Wipe previously-generated child rows (kept separate from Country metadata).
-  await db.food.deleteMany({ where: { countryCode } });
-  await db.pointOfInterest.deleteMany({ where: { countryCode } });
+  await client.food.deleteMany({ where: { countryCode } });
+  await client.pointOfInterest.deleteMany({ where: { countryCode } });
 
   // Serialize the new JSON fields.
   const emergencyJson = p.emergencyNumbers ? JSON.stringify(p.emergencyNumbers) : null;
@@ -492,7 +496,7 @@ export async function persistCountryPayload(
   const tvJson = p.tvChannels?.length ? JSON.stringify(p.tvChannels) : null;
   const peopleJson = p.famousPeople?.length ? JSON.stringify(p.famousPeople) : null;
 
-  await db.countryContent.upsert({
+  await client.countryContent.upsert({
     where: { countryCode },
     update: {
       overview: p.overview,
@@ -536,7 +540,7 @@ export async function persistCountryPayload(
   });
 
   if (p.foods.length) {
-    await db.food.createMany({
+    await client.food.createMany({
       data: p.foods.map((f) => ({
         countryCode,
         name: f.name,
@@ -546,7 +550,7 @@ export async function persistCountryPayload(
     });
   }
   if (p.pois.length) {
-    await db.pointOfInterest.createMany({
+    await client.pointOfInterest.createMany({
       data: p.pois.map((poi) => ({
         countryCode,
         name: poi.name,
@@ -557,7 +561,7 @@ export async function persistCountryPayload(
     });
   }
 
-  await db.travelPriceEstimate.upsert({
+  await client.travelPriceEstimate.upsert({
     where: { countryCode },
     update: {
       budgetHotelEur: p.priceEstimate.budgetHotelEur,

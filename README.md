@@ -57,6 +57,18 @@ Two things worth knowing:
 - Travel AI needs LLM credentials: either a `.z-ai-config` file or `ZAI_BASE_URL` + `ZAI_API_KEY` environment variables (plus `ZAI_MODEL` when the provider requires a model name). Any OpenAI-compatible endpoint works. Without credentials nothing breaks — live data and pre-generated briefs keep working, the chatbot just says it is not enabled.
 - On serverless, writes are per-instance and ephemeral. If you want generated briefs to survive restarts, host on Railway or Render with a persistent disk and set `DATABASE_URL=file:/data/custom.db`.
 
+## Automatic data updates
+
+Freshness is handled on two levels, with no manual work:
+
+1. **Live data — always fresh.** Exchange rates, weather, earthquakes, holidays, safety advisories and news are fetched from their APIs on every request (with short in-memory caching). Nothing to schedule.
+2. **AI briefs — daily rotation.** A Vercel Cron job (see `vercel.json`, daily at 03:00 UTC) calls `/api/cron/refresh`, which regenerates the 2 oldest country briefs into a disposable DB copy and reports coverage. Set these optional env vars to complete the loop:
+   - `CRON_SECRET` — secures the endpoint (Vercel sends it automatically).
+   - `GH_TOKEN` + `GH_REPO` (+ `GH_BRANCH`, default `main`) — with a fine-grained GitHub token ("Contents: read/write"), the refreshed database is committed back to the repository, which triggers a redeploy so the new briefs go live on their own.
+   - `REFRESH_KEY` — optionally trigger a manual run any time with `https://<your-app>/api/cron/refresh?key=<REFRESH_KEY>&batch=3`.
+
+   With ~2 countries refreshed per day, the whole 250-country dataset rotates every ~4 months — appropriate for evergreen editorial content whose live data never ages anyway.
+
 ## Project structure
 
 ```

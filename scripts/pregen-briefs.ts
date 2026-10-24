@@ -26,6 +26,18 @@ const INTER_COUNTRY_DELAY_MS = Number(process.env.INTER_COUNTRY_DELAY_MS ?? 15_0
 // When set (>0), the worker exits cleanly between countries once the budget
 // is exceeded — lets us run the script in bounded foreground chunks.
 const MAX_MINUTES = Number(process.env.MAX_MINUTES ?? 0);
+// Per-country hard timeout — the SDK's fetch has none, and a hung gateway
+// request would otherwise stall the whole run past any time budget.
+const COUNTRY_TIMEOUT_MS = 100_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const gate = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}: timed out after ${ms / 1000}s`)), ms);
+    (timer as unknown as { unref?: () => void }).unref?.();
+  });
+  return Promise.race([p, gate]).finally(() => clearTimeout(timer));
+}
 
 async function main() {
   const countries = await db.country.findMany({
@@ -61,8 +73,14 @@ async function main() {
       let ok = false;
       for (let attempt = 1; attempt <= RETRIES && !ok; attempt++) {
         try {
-          const payload = await generateCountryPayload(country, LOCALE_NATIVE[LANGUAGE]);
-          await persistCountryPayload(country.code, payload, LANGUAGE);
+          await withTimeout(
+            (async () => {
+              const payload = await generateCountryPayload(country, LOCALE_NATIVE[LANGUAGE]);
+              await persistCountryPayload(country.code, payload, LANGUAGE);
+            })(),
+            COUNTRY_TIMEOUT_MS,
+            `${country.code} ${country.name}`,
+          );
           ok = true;
           done++;
           const mins = ((Date.now() - startedAt) / 60000).toFixed(1);
