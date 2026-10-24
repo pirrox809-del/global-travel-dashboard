@@ -36,7 +36,23 @@ function diagnose(candidates: string[]): string {
 
 function resolveDatabaseUrl(): string {
   const explicit = process.env.DATABASE_URL;
-  if (explicit) return explicit;
+
+  // Only trust an EXPLICIT ABSOLUTE file: URL (e.g. the sandbox .env).
+  // Relative URLs like "file:../db/custom.db" are resolved by the Prisma
+  // engine relative to unpredictable locations in serverless bundles and
+  // fail with "Error code 14: Unable to open the database file" — replace
+  // them with an absolute path we control (see candidates below).
+  const isAbsoluteFileUrl = (u: string) => /^file:(\/\/)?\//.test(u);
+  if (explicit && isAbsoluteFileUrl(explicit)) {
+    if (!fs.existsSync(explicit.replace(/^file:(\/\/)?/, ''))) {
+      console.error('[db] DATABASE_URL points to a missing file:', explicit);
+    }
+    return explicit;
+  }
+  if (explicit && !/^file:/i.test(explicit)) {
+    // Non-file URLs (postgres://, etc.) — pass through untouched.
+    return explicit;
+  }
 
   const candidates = [
     path.join(process.cwd(), 'db', 'custom.db'),
