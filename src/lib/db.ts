@@ -87,7 +87,10 @@ function resolveDatabaseUrl(): string {
   return `file:${candidates[0]}`; // query will fail with a descriptive error
 }
 
-process.env.DATABASE_URL ??= resolveDatabaseUrl();
+// ALWAYS run the resolver (not ??=): it decides whether the explicit env
+// var is usable (absolute file:/) or must be replaced (relative URLs break
+// in serverless with Prisma error code 14).
+process.env.DATABASE_URL = resolveDatabaseUrl();
 
 /** Human-readable state for error reports returned by API routes. */
 export function getDbDiagnostics(): string {
