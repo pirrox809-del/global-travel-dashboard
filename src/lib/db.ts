@@ -17,7 +17,23 @@ import { PrismaClient } from '@prisma/client'
  * On Vercel the function filesystem is READ-ONLY, so first copy the DB to
  * /tmp (writable) so Prisma can create journal/WAL files and the app can
  * persist LLM-generated content (ephemeral per lambda instance — fine).
+ *
+ * IMPORTANT: this module must NEVER throw at import time — a throw during
+ * module init makes every DB route 500 with an empty body and hides the
+ * root cause. Worst case we return a best-guess path and the first QUERY
+ * fails with a descriptive error that route handlers can catch and report.
  */
+function diagnose(candidates: string[]): string {
+  const parts = [
+    `cwd=${process.cwd()}`,
+    `vercel=${process.env.VERCEL ?? 'unset'}`,
+    'candidates: ' + candidates
+      .map((p) => `${p} (${fs.existsSync(p) ? 'EXISTS' : 'missing'})`)
+      .join(', '),
+  ];
+  return parts.join(' | ');
+}
+
 function resolveDatabaseUrl(): string {
   const explicit = process.env.DATABASE_URL;
   if (explicit) return explicit;
@@ -29,35 +45,43 @@ function resolveDatabaseUrl(): string {
   ];
   const source = candidates.find((p) => fs.existsSync(p));
 
-  if (!source) {
-    throw new Error(
-      '[db] No DATABASE_URL set and no SQLite file found (looked in: ' +
-        candidates.join(', ') +
-        '). Set DATABASE_URL in your environment.',
-    );
-  }
-
   // Serverless platforms (Vercel) mount the bundle read-only: copy the
   // committed DB to /tmp so SQLite can write journals and the app can save
   // generated content. Only pays a one-time ~0.5MB copy per lambda instance.
   if (process.env.VERCEL) {
     const tmp = path.join(os.tmpdir(), 'custom.db');
-    try {
-      if (!fs.existsSync(tmp) || fs.statSync(tmp).size !== fs.statSync(source).size) {
-        fs.copyFileSync(source, tmp);
+    if (source) {
+      try {
+        if (!fs.existsSync(tmp) || fs.statSync(tmp).size !== fs.statSync(source).size) {
+          fs.copyFileSync(source, tmp);
+        }
+        return `file:${tmp}`;
+      } catch (e) {
+        console.error('[db] copy to /tmp failed:', (e as Error).message, '— using read-only file');
+        return `file:${source}`;
       }
-      return `file:${tmp}`;
-    } catch {
-      // If /tmp is unavailable, fall back to the read-only file (queries
-      // still work — only writes would fail).
-      return `file:${source}`;
     }
+    // No candidate found (e.g. the DB was not traced into the lambda).
+    console.error('[db] DB file NOT FOUND in lambda —', diagnose(candidates));
+    return `file:${tmp}`; // query will fail with a descriptive SQLite error
   }
 
-  return `file:${source}`;
+  if (source) return `file:${source}`;
+  console.error('[db] No DATABASE_URL and no SQLite file found —', diagnose(candidates));
+  return `file:${candidates[0]}`; // query will fail with a descriptive error
 }
 
 process.env.DATABASE_URL ??= resolveDatabaseUrl();
+
+/** Human-readable state for error reports returned by API routes. */
+export function getDbDiagnostics(): string {
+  const candidates = [
+    path.join(process.cwd(), 'db', 'custom.db'),
+    path.join(process.cwd(), 'prisma', 'db', 'custom.db'),
+    path.join(process.cwd(), '..', 'db', 'custom.db'),
+  ];
+  return diagnose(candidates) + ` | url=${process.env.DATABASE_URL ?? 'unset'}`;
+}
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined

@@ -10,7 +10,7 @@
  *   { countries: CountryListItem[], synced: boolean, count: number }
  */
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, getDbDiagnostics } from '@/lib/db';
 import { syncCountriesToDb, syncPopulationsToDb } from '@/lib/external/rest-countries';
 import type { CountryListItem } from '@/lib/types';
 
@@ -39,6 +39,24 @@ export async function GET() {
   // Fire-and-forget World Bank population backfill (max once / 24h).
   maybeRefreshPopulations();
 
+  try {
+    return await listCountries();
+  } catch (err) {
+    // Never leak an empty 500 — always report the root cause so failures on
+    // serverless platforms (no logs access) can be diagnosed from the body.
+    console.error('[countries] GET failed:', err);
+    return NextResponse.json(
+      {
+        error: 'Failed to load countries',
+        detail: String((err as Error).message ?? err),
+        db: getDbDiagnostics(),
+      },
+      { status: 500 },
+    );
+  }
+}
+
+async function listCountries() {
   let countries = await db.country.findMany({
     orderBy: [{ region: 'asc' }, { name: 'asc' }],
     select: {
