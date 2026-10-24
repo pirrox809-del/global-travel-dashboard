@@ -1,189 +1,132 @@
-<div align="center">
+# Global Travel Dashboard
 
-# 🌍 Global Travel Dashboard
+A travel dashboard for 189 countries. Live weather, exchange rates, travel advisories, earthquakes and economic data on one page, next to a short AI-written brief — overview, culture, food, places, prices — generated the first time you open a country and stored in the database after that.
 
-**189 countries. One view. Live weather, exchange rates, travel advisories, earthquakes — plus LLM-curated guides, food & places.**
+**[Live demo](https://global-travel-dashboard.vercel.app)** · [MIT license](LICENSE)
 
-[![🚀 Live Demo](https://img.shields.io/badge/%F0%9F%9A%80_Live_Demo-global--travel--dashboard.vercel.app-000?style=for-the-badge&logo=vercel&logoColor=white)](https://global-travel-dashboard.vercel.app)
+![Global Travel Dashboard](docs/screenshots/02-globe.png)
 
-![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
-![TypeScript 5](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white)
-![License: MIT](https://img.shields.io/badge/License-MIT-22C55E)
+## What it does
 
-**[English](#-what-you-get) · [Italiano](#-documentazione-completa-in-italiano)**
+- Pick a country by search, or spin the 3D globe
+- Live data for the selection: weather with 7-day forecast (Open-Meteo), ECB exchange rates (Frankfurter), US State Department advisory levels, recent earthquakes (USGS), World Bank GDP figures, Wikipedia photos, local clock
+- An LLM writes the slow-moving parts — country overview, culture, unwritten rules, safety notes, typical food, places worth visiting, hotel and flight price estimates. Written once, persisted afterwards, so it loads instantly on every later visit
+- UI in English, Spanish, Italian and French; other locales can be translated on the fly by the same LLM and cached
+- Light and dark theme, responsive layout, voice input for the AI chat
 
-<br>
+## Data sources
 
-![Global Travel Dashboard demo](docs/screenshots/demo.gif)
-
-</div>
-
-## ✨ What you get
-
-Pick any of **189 countries** and get a complete, continuously-updated travel dashboard:
-
-- 🌐 **3D interactive globe** + instant country search
-- 🌦️ **Live data** — weather with 7-day forecast, FX rates, government travel advisories, recent earthquakes, GDP, authentic photos, local clock with seconds
-- 🤖 **LLM-curated travel brief** — overview, culture, unwritten rules, safety, typical food, places to visit, price estimates. Generated once on first visit, then **persisted in the database** (it's a cache layer, not a per-refresh cost)
-- 🗣️ **4 UI languages** — English, Español, Italiano, Français — plus on-the-fly LLM translation for any other locale
-- 🌗 Light/dark theme, fully responsive, voice input for the AI chat
-
-### 📡 Where the data comes from
-
-| Category | Source | Update |
+| Category | Source | Updated |
 |---|---|---|
-| 🌦️ Live weather + 7-day forecast | Open-Meteo (fallback wttr.in) | Real-time |
-| 💱 Exchange rates | Frankfurter · ECB | Daily |
-| 🚨 Travel advisories (levels 1–4) | US State Dept | Daily |
-| 💰 Economy (GDP, GDP per capita) | World Bank | Annual |
-| 🌍 Recent earthquakes | USGS | Real-time |
-| 📷 Authentic photos | Wikipedia | Stable |
-| 🕐 Local time | IANA tz database | Real-time |
-| 📝 Overview, culture, unwritten rules, safety | LLM — generated once, persisted | Once |
-| 🍝 Food, places, price estimates | LLM + DB normalization | Once |
-| 👥 Famous people, TV channels, internet quality | LLM | Once |
+| Weather + 7-day forecast | Open-Meteo (fallback wttr.in) | Real-time |
+| Exchange rates | Frankfurter / ECB | Daily |
+| Travel advisories (levels 1–4) | US State Dept | Daily |
+| GDP, GDP per capita | World Bank | Annual |
+| Earthquakes | USGS | Real-time |
+| Photos | Wikipedia | Stable |
+| Local time | IANA tz database | Real-time |
+| Briefs, food, places, prices | LLM, generated once and persisted | First visit |
 
-## 📸 Screenshots
+## Screenshots
 
-| Dashboard | Country view |
-|---|---|
-| ![Dashboard](docs/screenshots/02-globe.png) | ![Japan](docs/screenshots/03-country.png) |
-| **Live data cards** | **Dark mode** |
-| ![Live data](docs/screenshots/04-live-data.png) | ![Dark](docs/screenshots/05-dark.png) |
+![Country view — Japan](docs/screenshots/03-country.png)
 
-## 🧱 Tech stack
+![Live data cards](docs/screenshots/04-live-data.png)
 
-- **Next.js 16** (App Router) + **TypeScript 5**
-- **Tailwind CSS 4** + **shadcn/ui** (New York) + Lucide icons
-- **Prisma ORM** + SQLite (pre-populated with 250 countries)
-- **Framer Motion** (transitions, "shutter" title animation)
-- **react-globe.gl / cobe** (3D globe)
-- In-memory TTL cache + file-traced DB for serverless
+![Dark mode](docs/screenshots/05-dark.png)
 
-## 🚀 Run it locally
+## Running locally
 
 ```bash
-# 1. Clone & install
 git clone https://github.com/pirrox809-del/global-travel-dashboard.git
 cd global-travel-dashboard
-bun install        # or: npm install
-
-# 2. Configure the environment
+bun install            # or npm install
 cp .env.example .env
-
-# 3. Generate the Prisma client (DB is already pre-populated)
-bun run db:generate
-
-# 4. Start
-bun run dev        # http://localhost:3000
+bun run db:generate    # the SQLite DB is pre-populated, no seed needed
+bun run dev            # http://localhost:3000
 ```
 
-> **LLM content**: the AI brief generator reads credentials from a `.z-ai-config`
-> file (`{"baseUrl": "...", "apiKey": "..."}` — any OpenAI-compatible endpoint).
-> Without credentials the app still runs: all **live-data sections work**, and the
-> briefs **pre-generated in the committed DB** are served as-is.
+Next.js 16 (App Router), TypeScript 5, Tailwind CSS 4, shadcn/ui, Prisma + SQLite, Framer Motion, react-globe.gl/cobe.
 
-## ☁️ Deploy to Vercel (zero config)
+## Deploying
 
-1. Push the repo to GitHub → [vercel.com](https://vercel.com) → **Add New → Project** → import
-2. **Deploy.** That's it — no environment variables needed.
+Vercel works without configuration: import the repository and deploy. The pre-populated SQLite database ships inside the serverless function and is copied to a writable path at runtime, so the API answers from the first request.
 
-What happens under the hood:
+Two things worth knowing:
 
-- The pre-populated SQLite DB is **shipped inside the serverless function**
-  (`outputFileTracingIncludes`) and copied to `/tmp` at runtime — Prisma finds it
-  automatically, so the API works out of the box.
-- All **live-data features** work immediately; pre-generated briefs are served from the DB.
-- ⚠️ **LLM generation** needs the `.z-ai-config` credentials (Vercel env/secret or your own
-  OpenAI-compatible endpoint). Without them the UI degrades gracefully — nothing breaks.
-- Writes (e.g. newly generated briefs) are **ephemeral per lambda instance** on Vercel.
-  Want persistent writes with zero code changes? Use **Railway** or **Render** with a
-  persistent volume and `DATABASE_URL=file:/data/custom.db`.
+- The AI generator reads credentials from `.z-ai-config` (any OpenAI-compatible endpoint). Without credentials nothing breaks — live data and pre-generated briefs keep working, only new generation is skipped.
+- On serverless, writes are per-instance and ephemeral. If you want generated briefs to survive restarts, host on Railway or Render with a persistent disk and set `DATABASE_URL=file:/data/custom.db`.
 
-## 📂 Project structure
+## Project structure
 
 ```
 src/
-├── app/                  # App Router: page.tsx, layout, API routes
+├── app/                  # App Router: page, layout, API routes
 │   └── api/countries/    # Countries aggregation endpoint
 ├── components/
-│   ├── ui/               # shadcn/ui + custom (globes, cursor, animations)
+│   ├── ui/               # shadcn/ui + custom (globe, cursor, animations)
 │   └── dashboard/        # Dashboard sections (weather, economy, culture…)
 ├── lib/
 │   ├── external/         # External API clients (World Bank, USGS, Open-Meteo…)
 │   ├── cache.ts          # In-memory cache with TTL
 │   ├── db.ts             # Prisma client + serverless-aware DB resolution
-│   └── i18n.ts           # Translations (EN/ES/IT/FR)
+│   └── i18n.ts           # UI translations (EN/ES/IT/FR)
 └── prisma/schema.prisma  # Data model
 db/custom.db              # Pre-populated SQLite database
 ```
 
-## 🙏 Acknowledgements
+## Credits
 
-Data and tools: [mledoze/countries](https://github.com/mledoze/countries) · [Open-Meteo](https://open-meteo.com) · [Frankfurter · ECB](https://frankfurter.dev) · [US State Dept](https://www.travel.state.gov) · [World Bank](https://data.worldbank.org) · [USGS](https://earthquake.usgs.gov) · [Wikipedia](https://wikipedia.org) · [shadcn/ui](https://ui.shadcn.com)
+[mledoze/countries](https://github.com/mledoze/countries) · [Open-Meteo](https://open-meteo.com) · [Frankfurter](https://frankfurter.dev) · [US State Dept](https://travel.state.gov) · [World Bank](https://data.worldbank.org) · [USGS](https://earthquake.usgs.gov) · [Wikipedia](https://wikipedia.org) · [shadcn/ui](https://ui.shadcn.com)
 
-## 📄 License
+Each data source remains subject to its own terms of use.
 
-[MIT](LICENSE) — free to use, fork and build upon. Each data source remains subject to its own terms.
+## License
+
+[MIT](LICENSE)
 
 ---
 
-<div align="center">
+<details>
+<summary><b>Documentazione in italiano</b></summary>
 
-### 🇮🇹 Documentazione completa in italiano
+### Global Travel Dashboard
 
-</div>
+Dashboard di viaggio per 189 paesi: meteo live, tassi di cambio, avvisi di viaggio, terremoti e dati economici in una sola pagina, insieme a una breve guida scritta dall'AI — panoramica, cultura, cibo, luoghi, prezzi — generata al primo accesso e salvata nel database.
 
-**Ogni paese, una pagina.** Dashboard completa per **189+ paesi** con dati ufficiali in tempo reale e contenuti di viaggio curati dall'AI.
+**[Demo live](https://global-travel-dashboard.vercel.app)** — senza registrazione né configurazione.
 
-### Cosa contiene ogni dashboard
+### Fonti dei dati
 
 | Categoria | Fonte | Aggiornamento |
 |---|---|---|
-| 🌦️ Meteo live + previsioni 7 giorni | Open-Meteo (fallback wttr.in) | Tempo reale |
-| 💱 Tassi di cambio | Frankfurter · BCE | Quotidiano |
-| 🚨 Avvisi di viaggio (livelli 1–4) | US State Dept | Quotidiano |
-| 💰 Economia (PIL, PIL pro capite) | World Bank | Annuale (ultimo anno disponibile) |
-| 🌍 Terremoti recenti | USGS | Tempo reale |
-| 📷 Foto autentiche | Wikipedia | Stabile |
-| 🕐 Ora locale con secondi | IANA tz database | Tempo reale |
-| 📝 Panoramica, cultura, regole non scritte, sicurezza | LLM (generato al primo accesso, poi persistito) | Una tantum |
-| 🍝 Cibi tipici, luoghi da visitare, stime prezzi | LLM + normalizzazione DB | Una tantum |
-| 👥 Personaggi famosi, canali TV, qualità internet | LLM | Una tantum |
+| Meteo + previsioni 7 giorni | Open-Meteo (fallback wttr.in) | Tempo reale |
+| Tassi di cambio | Frankfurter / BCE | Quotidiano |
+| Avvisi di viaggio (livelli 1–4) | US State Dept | Quotidiano |
+| PIL, PIL pro capite | World Bank | Annuale |
+| Terremoti | USGS | Tempo reale |
+| Foto | Wikipedia | Stabile |
+| Ora locale | IANA tz database | Tempo reale |
+| Brief, cibo, luoghi, prezzi | LLM, generato una volta e persistito | Primo accesso |
 
 ### Avvio locale
 
 ```bash
 git clone https://github.com/pirrox809-del/global-travel-dashboard.git
 cd global-travel-dashboard
-bun install                # oppure: npm install
+bun install            # oppure npm install
 cp .env.example .env
-bun run db:generate        # il DB è già pre-popolato con 250 paesi
-bun run dev                # http://localhost:3000
+bun run db:generate    # il DB SQLite è già pre-popolato
+bun run dev            # http://localhost:3000
 ```
 
-> **Contenuti LLM**: il generatore legge le credenziali da un file `.z-ai-config`
-> (`{"baseUrl": "...", "apiKey": "..."}` — qualsiasi endpoint OpenAI-compatibile).
-> Senza credenziali l'app funziona comunque: tutte le sezioni con **dati live
-> continuano a funzionare** e i brief **pre-generati nel DB** restano visibili.
+### Pubblicazione
 
-### Pubblicazione online
+Su Vercel funziona senza alcuna configurazione: importa la repository e fai deploy. Il database SQLite pre-popolato viene incluso nella funzione serverless e copiato in un percorso scrivibile all'avvio, quindi l'API risponde già alla prima richiesta.
 
-**Vercel (consigliata — zero configurazione):** importa il repo da [vercel.com](https://vercel.com) e premi **Deploy**. Non serve alcuna variabile d'ambiente: il database SQLite viene incluso nella funzione serverless e copiato in `/tmp` automaticamente all'avvio. I dati live e i brief pre-generati funzionano subito; la generazione LLM richiede le credenziali `.z-ai-config` (senza di esse l'interfaccia degrada con eleganza, senza rompersi). Le scritture su Vercel sono efimere per istanza: per scrittura persistente usa Railway/Render con un volume e `DATABASE_URL=file:/data/custom.db`.
+Due cose da sapere:
 
-**Railway / Render:** host con filesystem persistente — SQLite funziona così com'è. Monta un volume su `/data` e imposta `DATABASE_URL=file:/data/custom.db`.
+- Il generatore AI legge le credenziali da `.z-ai-config` (qualsiasi endpoint OpenAI-compatibile). Senza credenziali nulla si rompe: i dati live e i brief pre-generati continuano a funzionare, viene saltata solo la generazione di nuovi contenuti.
+- Su serverless le scritture sono per-istanza ed effimere. Per conservare i brief generati, usa Railway o Render con disco persistente e `DATABASE_URL=file:/data/custom.db`.
 
-### Riepilogo cosa funziona dove
-
-| Funzionalità | Vercel | Railway/Render (volume) |
-|---|---|---|
-| Frontend + UI + globo 3D | ✅ | ✅ |
-| Meteo / cambi / advisory / terremoti / PIL / foto | ✅ | ✅ |
-| Lettura contenuti dal DB pre-popolato | ✅ (auto /tmp) | ✅ |
-| Generazione nuovi contenuti LLM | ⚠️ serve `.z-ai-config` | ⚠️ serve `.z-ai-config` |
-
-### Licenza
-
-[MIT](LICENSE) — dati forniti da API pubbliche citate sopra (ringraziamenti a Open-Meteo, Frankfurter/BCE, USGS, World Bank, US State Dept, Wikipedia, mledoze/countries).
+</details>
