@@ -936,3 +936,21 @@ Stage Summary:
 - Travel AI è vivo: FAB amber in basso a destra → pannello chat animato che risponde in 4 lingue su come usare il sito e su viaggi/paesi, con le animazioni del componente 21st.dev richiesto dall'utente
 - Endpoint /api/chat riutilizzabile, rate-limited, con knowledge del sito nel system prompt; per aggiornare le conoscenze basta modificare systemPrompt() in src/app/api/chat/route.ts
 - Voce (Web Speech API) disponibile in Chrome/Edge/Safari: mic nel pill → dettatura live con visualizzatore; nascosto su browser non supportati
+
+---
+Task ID: 32
+Agent: Z.ai Code (main)
+Task: Rimuovere la striscia/bordo nero visibile su ogni bandiera nel pannello lingue (richiesta utente: "in ogni bandiera c'è una linea nera... toglila")
+
+Work Log:
+- Diagnosticato FlagIcon (src/components/ui/flag-icon.tsx): ogni bandiera era avvolta in uno span con `ring-1 ring-black/15 dark:ring-white/20` — bordo scuro 1px attorno a ogni SVG, causa della "striscia nera"
+- Rimosso il ring dal wrapper (lasciati solo rounded + overflow-hidden)
+- Bonus robustezza: per IT/FR aggiunta base bianca full-canvas + sovrapposizione 0.5 unità tra bande, per eliminare ogni possibile seam da anti-aliasing
+- Verificato via computed styles: boxShadow=none, border 0px su tutti i wrapper bandiera
+- Verifica visiva: screenshot light mode 4x (bandiere pulite, niente bordi) e dark mode 4x (IT/FR mostrano tutte e 3 le bande distintamente)
+- Lint pulito, dev.log senza errori
+
+Stage Summary:
+- Le 4 bandiere (EN/ES/IT/FR) nel pannello lingue non hanno più alcun bordo/striscia scura
+- File modificato: solo src/components/ui/flag-icon.tsx
+- Nota: in light mode la banda bianca centrale di IT/FR si fonde col fondo chiaro del pannello (comportamento naturale senza bordi); in dark mode ben visibili

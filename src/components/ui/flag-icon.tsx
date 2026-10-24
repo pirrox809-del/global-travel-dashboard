@@ -19,7 +19,7 @@ export function FlagIcon({ locale, className }: { locale: Locale; className?: st
   return (
     <span
       className={cn(
-        'inline-block h-4 w-6 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-black/15 dark:ring-white/20',
+        'inline-block h-4 w-6 shrink-0 overflow-hidden rounded-[3px]',
         className,
       )}
       aria-hidden="true"
@@ -61,16 +61,18 @@ export function FlagIcon({ locale, className }: { locale: Locale; className?: st
         )}
         {locale === 'it' && (
           <>
-            <rect width="20" height="40" fill="#009246" />
-            <rect x="20" width="20" height="40" fill="#fff" />
-            <rect x="40" width="20" height="40" fill="#CE2B37" />
+            {/* White base + 0.5-unit overlaps: no anti-aliasing seams between bands */}
+            <rect width="60" height="40" fill="#fff" />
+            <rect width="20.5" height="40" fill="#009246" />
+            <rect x="39.5" width="20.5" height="40" fill="#CE2B37" />
           </>
         )}
         {locale === 'fr' && (
           <>
-            <rect width="20" height="40" fill="#0055A4" />
-            <rect x="20" width="20" height="40" fill="#fff" />
-            <rect x="40" width="20" height="40" fill="#EF4135" />
+            {/* White base + 0.5-unit overlaps: no anti-aliasing seams between bands */}
+            <rect width="60" height="40" fill="#fff" />
+            <rect width="20.5" height="40" fill="#0055A4" />
+            <rect x="39.5" width="20.5" height="40" fill="#EF4135" />
           </>
         )}
       </svg>
