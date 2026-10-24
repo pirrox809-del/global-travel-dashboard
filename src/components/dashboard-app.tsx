@@ -11,6 +11,7 @@ import { Dashboard } from '@/components/dashboard/dashboard';
 import { NeuralNoise } from '@/components/ui/neural-noise';
 import { AirplaneCursor } from '@/components/ui/airplane-cursor';
 import { IntroScreen } from '@/components/intro-screen';
+import { TravelAIChat } from '@/components/travel-ai-chat';
 import { GlobeCdn } from '@/components/ui/cobe-globe-cdn';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -170,6 +171,9 @@ function DashboardAppInner() {
             </div>
           </div>
         </footer>
+
+        {/* Travel AI — floating chatbot (bottom-right) */}
+        <TravelAIChat />
           </motion.div>
         )}
       </AnimatePresence>

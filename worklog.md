@@ -917,3 +917,22 @@ Stage Summary:
 - Il selettore lingue mostra ora una bandiera vettoriale nitida accanto a ogni lingua (English/Union Jack, Español/Spagna, Italiano/Italia, Français/Francia) su OGNI piattaforma, Windows incluso
 - Verifica agent-browser: pannello desktop light (4 bandiere corrette + check sulla selezionata), switch IT funziona (trigger diventa 🇮🇹 IT, UI tradotta), dark mode leggibile, mobile 375px allineato, 0 errori console, lint pulito
 - Le emoji flag restano in LOCALES come dati ma non sono più renderizzate; componente riusabile FlagIcon per future aggiunte lingue
+
+---
+Task ID: 31
+Agent: main (Z.ai Code)
+Task: Aggiungere un chatbot AI al sito ("Travel AI") usando l'animazione del componente 21st.dev "ai-chat-input" caricato dall'utente
+
+Work Log:
+- Letto /home/z/my-project/upload/Pasted Content_1792837271952.txt (componente 21st.dev PromptInput: morphing text, model selector, attach immagini, voice recording con Web Audio visualizer)
+- Creato src/components/ui/ai-chat-input.tsx: versione adattata e alleggerita — mantenute le animazioni firma (pill 48px→espansione a molla 116px+ con cubic-bezier(0.175,0.885,0.32,1.275), MorphingText del brand chip, pulsante send che si trasforma freccia→mic→stop, visualizzatore audio 5 bande, fades gradiente, auto-grow textarea max 160px); rimosse dipendenze esterne (CDN 21st.dev), allegati immagini, model dropdown, effort selector; microfono visibile solo se Web Speech API supportata, trascrizione live nel textarea con lingua del browser; fixes react-hooks/set-state-in-effect (voice detection rinviata a rAF callback, rimosso effetto auto-expand ridondante)
+- Creato src/components/travel-ai-chat.tsx: widget completo — FAB amber gradiente bottom-right con morph Plane↔X + ping di attenzione, pannello glass (bg-card/95 backdrop-blur, w-380px, h-62vh, spring Framer Motion) con header (avatar, pallino verde online, clear, close), bolla greeting statica, messaggi utente (bg-primary destra) / assistente (bg-muted sinistra), typing indicator 3 dots, aria-live polite, auto-scroll; messaggi in memoria (no persistenza — leggero come richiesto)
+- Creato src/app/api/chat/route.ts: POST {locale, messages→max 12×1500char} → {reply}; ZAI.create() singleton, thinking disabled, system prompt che descrive TUTTO il sito (189 paesi, meteo/Open-Meteo, cambio/ECB, advisory US State Dept, economia World Bank, terremoti USGS, densità/governo/capo di Stato, brief IA cultura/cibo/POI/prezzi, preferiti, classifica, 4 lingue, dark mode) + regole: risposta nella lingua del sito, max ~120 parole, niente valori live inventati, off-topic→riporta a viaggi; rate limit in-memory 20 req/min per IP con cleanup
+- i18n.ts: 12 nuove chiavi × 4 lingue (chat.open/close/subtitle/greeting/placeholder/typing/error/clear/send/voice/stopVoice/prompt)
+- dashboard-app.tsx: <TravelAIChat /> montato dentro la vista dashboard (dopo il footer, fuori dal flusso sticky)
+- Verifica agent-browser: pannello apre/chiude con spring, domanda EN ("What can I find on the Italy page?") → risposta inglese accurata ~7s; switch lingua IT → placeholder/greeting/subtitle tradotti; domanda IT → risposta italiana; multi-turno funziona; mobile 375px pannello w-calc(100vw-2rem) ok; dark mode ok (screenshot post-transizione); lint pulito; dev.log: 3× POST /api/chat 200, 0 errori console
+
+Stage Summary:
+- Travel AI è vivo: FAB amber in basso a destra → pannello chat animato che risponde in 4 lingue su come usare il sito e su viaggi/paesi, con le animazioni del componente 21st.dev richiesto dall'utente
+- Endpoint /api/chat riutilizzabile, rate-limited, con knowledge del sito nel system prompt; per aggiornare le conoscenze basta modificare systemPrompt() in src/app/api/chat/route.ts
+- Voce (Web Speech API) disponibile in Chrome/Edge/Safari: mic nel pill → dettatura live con visualizzatore; nascosto su browser non supportati
