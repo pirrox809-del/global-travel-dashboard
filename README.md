@@ -1,10 +1,10 @@
-# 🌍 Global Travel Dashboard
+#  Global Travel Dashboard
 
 Ogni paese, una pagina. Dashboard completa per **189+ paesi** con dati ufficiali in tempo reale e contenuti di viaggio curati.
 
 > **Demo locale** — progetto sviluppato con Next.js 16 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui e Prisma (SQLite).
 
-## ✨ Cosa contiene ogni dashboard
+##  Cosa contiene ogni dashboard
 
 | Categoria | Fonte | Aggiornamento |
 |---|---|---|
@@ -19,7 +19,7 @@ Ogni paese, una pagina. Dashboard completa per **189+ paesi** con dati ufficiali
 | 🍝 Cibi tipici, luoghi da visitare, stime prezzi | LLM + normalizzazione DB | Una tantum |
 | 👥 Personaggi famosi, canali TV, qualità internet | LLM | Una tantum |
 
-## 🛠️ Stack
+##  Stack
 
 - **Next.js 16** (App Router) + **TypeScript 5**
 - **Tailwind CSS 4** + **shadcn/ui** (New York) + Lucide icons
@@ -27,7 +27,7 @@ Ogni paese, una pagina. Dashboard completa per **189+ paesi** con dati ufficiali
 - **Framer Motion** (transizioni, animazione titolo "shutter")
 - react-globe.gl / cobe (globo 3D interattivo)
 
-## 🚀 Avvio locale
+##  Avvio locale
 
 ```bash
 # 1. Clona e installa
@@ -46,7 +46,7 @@ bun run db:push
 bun run dev        # http://localhost:3000
 ```
 
-## ☁️ Pubblicazione online
+##  Pubblicazione online
 
 Il sito **non è un file HTML statico**: è un'app full-stack (frontend + API routes + database), quindi serve un hosting per applicazioni — GitHub per il codice, la piattaforma di hosting per il sito.
 
@@ -83,12 +83,12 @@ Questi host offrono un **filesystem persistente** (o disco montabile): SQLite fu
 
 | Funzionalità | Vercel | Railway/Render (volume) |
 |---|---|---|
-| Frontend + UI + globo 3D | ✅ | ✅ |
-| Meteo / cambi / advisory / terremoti / PIL / foto (API pubbliche) | ✅ | ✅ |
-| Lettura contenuti dal DB pre-popolato | ⚠️ (via /tmp o Turso) | ✅ |
-| Generazione nuovi contenuti LLM | ⚠️ serve `.z-ai-config`/API key | ⚠️ serve `.z-ai-config`/API key |
+| Frontend + UI + globo 3D |  |  |
+| Meteo / cambi / advisory / terremoti / PIL / foto (API pubbliche) |  |  |
+| Lettura contenuti dal DB pre-popolato |  (via /tmp o Turso) |  |
+| Generazione nuovi contenuti LLM |  serve `.z-ai-config`/API key |  serve `.z-ai-config`/API key |
 
-## 📁 Struttura del progetto
+##  Struttura del progetto
 
 ```
 src/
