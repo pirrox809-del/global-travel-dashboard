@@ -1,8 +1,15 @@
 # Global Travel Dashboard
 
-A travel dashboard for 250 countries. Live weather, exchange rates, travel advisories, earthquakes and economic data on one page, next to a short AI-written brief — overview, culture, food, places, prices — generated the first time you open a country and stored in the database after that.
+[![Next.js 16](https://img.shields.io/badge/Next.js_16-000000?style=flat&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![TypeScript 5](https://img.shields.io/badge/TypeScript_5-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS_4-38BDF8?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat&logo=prisma&logoColor=white)](https://www.prisma.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-38B27D?style=flat)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/pirrox809-del/global-travel-dashboard?style=flat&logo=github)](https://github.com/pirrox809-del/global-travel-dashboard/stargazers)
 
-**[Live demo](https://global-travel-dashboard.vercel.app)** · [MIT license](LICENSE)
+A travel dashboard for **250 countries — none excluded**. Live weather, exchange rates, travel advisories, earthquakes and economic data on one page, next to a short AI-written brief — overview, culture, food, places, prices — generated the first time you open a country and stored in the database after that.
+
+**🌐 [Open the live demo](https://global-travel-dashboard.vercel.app)** · [MIT license](LICENSE)
 
 ![Global Travel Dashboard](docs/screenshots/02-globe.png)
 
@@ -87,6 +94,12 @@ src/
 db/custom.db              # Pre-populated SQLite database
 ```
 
+## Show your support
+
+If this project taught you something, inspired your own build, or you just like spinning the globe — consider giving it a ⭐. It genuinely helps other people find it.
+
+[![Star this repo](https://img.shields.io/badge/⭐-Star_this_repo-38B27D?style=for-the-badge)](https://github.com/pirrox809-del/global-travel-dashboard/stargazers)
+
 ## Credits
 
 [mledoze/countries](https://github.com/mledoze/countries) · [Open-Meteo](https://open-meteo.com) · [Frankfurter](https://frankfurter.dev) · [US State Dept](https://travel.state.gov) · [World Bank](https://data.worldbank.org) · [USGS](https://earthquake.usgs.gov) · [Wikipedia](https://wikipedia.org) · [shadcn/ui](https://ui.shadcn.com)
@@ -104,7 +117,9 @@ Each data source remains subject to its own terms of use.
 
 ### Global Travel Dashboard
 
-Dashboard di viaggio per 250 paesi: meteo live, tassi di cambio, avvisi di viaggio, terremoti e dati economici in una sola pagina, insieme a una breve guida scritta dall'AI — panoramica, cultura, cibo, luoghi, prezzi — generata al primo accesso e salvata nel database.
+> Dashboard di viaggio per **250 paesi — nessuno escluso**. Se il progetto ti è piaciuto, lascia una ⭐ sulla repo!
+
+Meteo live, tassi di cambio, avvisi di viaggio, terremoti e dati economici in una sola pagina, insieme a una breve guida scritta dall'AI — panoramica, cultura, cibo, luoghi, prezzi — generata al primo accesso e salvata nel database.
 
 **[Demo live](https://global-travel-dashboard.vercel.app)** — senza registrazione né configurazione.
 

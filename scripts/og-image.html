@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1440px; height: 720px; overflow: hidden; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #050a14 0%, #0a1628 45%, #0d1f35 70%, #0a1a2e 100%);
+    position: relative;
+  }
+  /* subtle grid */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(56,178,125,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,178,125,0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  /* glow orbs */
+  .orb1 { position: absolute; width: 700px; height: 700px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(56,178,125,0.12) 0%, transparent 60%);
+    top: 10px; right: -120px; }
+  .orb2 { position: absolute; width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(30,120,180,0.10) 0%, transparent 65%);
+    bottom: -150px; left: -80px; }
+  .layout { position: relative; display: flex; width: 100%; height: 100%; align-items: center; }
+  .text { flex: 1.15; padding: 0 40px 0 90px; z-index: 2; }
+  .kicker {
+    display: inline-block; padding: 8px 20px; border: 1px solid rgba(56,178,125,0.45);
+    border-radius: 999px; color: #57d9a3; font-size: 17px; letter-spacing: 4px;
+    font-weight: 600; margin-bottom: 30px; background: rgba(56,178,125,0.08);
+  }
+  h1 { color: #ffffff; font-size: 72px; line-height: 1.06; font-weight: 800; letter-spacing: -1px; }
+  h1 .accent { color: #57d9a3; }
+  .sub { color: #9db2c7; font-size: 27px; margin-top: 26px; line-height: 1.45; font-weight: 400; max-width: 640px; }
+  .sub b { color: #d7e4f0; font-weight: 600; }
+  .chips { display: flex; gap: 14px; margin-top: 40px; }
+  .chip {
+    padding: 10px 22px; border-radius: 12px; font-size: 18px; font-weight: 600;
+    color: #cfe3d9; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  }
+  .chip .dot { color: #57d9a3; margin-right: 9px; }
+  .globe-wrap { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+  .globe-halo { position: absolute; width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(56,178,125,0.16) 0%, transparent 70%); }
+  svg { position: relative; }
+  .footer-bar {
+    position: absolute; bottom: 34px; left: 90px; right: 90px; display: flex;
+    justify-content: space-between; color: #5f7488; font-size: 16px; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="orb1"></div>
+  <div class="orb2"></div>
+  <div class="layout">
+    <div class="text">
+      <div class="kicker">TRAVEL · DATA · AI</div>
+      <h1>Global Travel<br><span class="accent">Dashboard</span></h1>
+      <div class="sub"><b>250 countries</b> — none excluded. Live weather, exchange rates, safety and an AI-written brief for every country.</div>
+      <div class="chips">
+        <div class="chip"><span class="dot">●</span>Live data</div>
+        <div class="chip"><span class="dot">●</span>3D globe</div>
+        <div class="chip"><span class="dot">●</span>AI briefs</div>
+      </div>
+    </div>
+    <div class="globe-wrap">
+      <div class="globe-halo"></div>
+      <svg width="520" height="520" viewBox="0 0 520 520" fill="none">
+        <g stroke="#2b7a5b" stroke-opacity="0.55" fill="none" stroke-width="1.4">
+          <circle cx="260" cy="260" r="230"/>
+          <ellipse cx="260" cy="260" rx="230" ry="230"/>
+          <ellipse cx="260" cy="260" rx="230" ry="184"/>
+          <ellipse cx="260" cy="260" rx="230" ry="132"/>
+          <ellipse cx="260" cy="260" rx="230" ry="76"/>
+          <ellipse cx="260" cy="260" rx="230" ry="20"/>
+          <ellipse cx="260" cy="260" rx="184" ry="230"/>
+          <ellipse cx="260" cy="260" rx="132" ry="230"/>
+          <ellipse cx="260" cy="260" rx="76" ry="230"/>
+          <ellipse cx="260" cy="260" rx="20" ry="230"/>
+        </g>
+        <g fill="#57d9a3">
+          <circle cx="150" cy="160" r="5"/>
+          <circle cx="340" cy="130" r="6"/>
+          <circle cx="410" cy="230" r="5"/>
+          <circle cx="300" cy="310" r="5"/>
+          <circle cx="130" cy="330" r="6"/>
+          <circle cx="230" cy="420" r="5"/>
+          <circle cx="420" cy="360" r="4.5"/>
+          <circle cx="90" cy="240" r="4.5"/>
+          <circle cx="370" cy="430" r="4"/>
+        </g>
+        <g stroke="#57d9a3" stroke-opacity="0.6" stroke-width="2" fill="none">
+          <path d="M150 160 Q 250 60 340 130" stroke-dasharray="7 7"/>
+          <path d="M340 130 Q 470 170 410 230"/>
+          <path d="M130 330 Q 200 420 230 420" stroke-dasharray="7 7"/>
+          <path d="M300 310 Q 390 420 370 430"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="footer-bar">
+    <span>GLOBAL-TRAVEL-DASHBOARD.VERCEL.APP</span>
+    <span>NEXT.JS 16 · TYPESCRIPT · PRISMA</span>
+  </div>
+</body>
+</html>

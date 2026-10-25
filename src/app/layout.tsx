@@ -14,12 +14,41 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://global-travel-dashboard.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Global Travel Dashboard — 189 countries, one view",
+  metadataBase: new URL(SITE_URL),
+  title: "Global Travel Dashboard — 250 countries, one view",
   description:
-    "Weather, exchange rates, travel advisories, and local info for 189 countries — all in one dashboard.",
-  keywords: ["travel", "dashboard", "countries", "weather", "exchange rates", "travel advisory"],
+    "Live weather, exchange rates, travel advisories, earthquakes and AI-written travel briefs for 250 countries — all in one dashboard.",
+  keywords: [
+    "travel", "dashboard", "countries", "weather", "exchange rates",
+    "travel advisory", "3d globe", "ai travel", "world data",
+  ],
   authors: [{ name: "Global Travel Dashboard" }],
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Global Travel Dashboard",
+    title: "Global Travel Dashboard — 250 countries, one view",
+    description:
+      "Live weather, exchange rates, travel advisories and AI-written travel briefs for 250 countries.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1440,
+        height: 720,
+        alt: "Global Travel Dashboard — 250 countries, live data, AI powered",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Global Travel Dashboard — 250 countries, one view",
+    description:
+      "Live weather, exchange rates, travel advisories and AI-written travel briefs for 250 countries.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
