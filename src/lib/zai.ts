@@ -122,6 +122,7 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
   // brief generator) keep separate lanes — and separate provider rate
   // limits, which most providers enforce per model.
   const resolvedByHint = new Map<string, string>();
+  const deadModels = new Set<string>();
   let providerModelIds: string[] | null = null;
 
   async function listProviderModels(): Promise<string[]> {
@@ -154,9 +155,9 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
 
     const ids = await listProviderModels();
     for (const pref of MODEL_PREFERENCE) {
-      if (ids.includes(pref) && !tried.has(pref)) return pref;
+      if (ids.includes(pref) && !tried.has(pref) && !deadModels.has(pref)) return pref;
     }
-    const fallback = ids.find((id) => !MODEL_EXCLUDE.test(id) && !tried.has(id));
+    const fallback = ids.find((id) => !MODEL_EXCLUDE.test(id) && !tried.has(id) && !deadModels.has(id));
     return fallback ?? null;
   }
 
@@ -202,6 +203,13 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
 
       const errBody = (await res.text().catch(() => '')).slice(0, 500);
       lastError = new Error(`LLM provider responded ${res.status}: ${errBody}`);
+
+      // A model the provider has never heard of (or has decommissioned)
+      // stays dead for the lifetime of this instance — never waste a
+      // request on it again.
+      if (res.status === 404 && /does not exist|model_not_found|model terminated/i.test(errBody)) {
+        deadModels.add(model);
+      }
 
       // Retry with another model only on "unknown model" style errors.
       const modelProblem = res.status === 404 || (res.status === 400 && /model/i.test(errBody));
