@@ -104,7 +104,6 @@ function envConfig(): ZaiEnvConfig | null {
  * the lifetime of the process.
  */
 const MODEL_PREFERENCE = [
-  'llama-3.3-70b-versatile',
   'openai/gpt-oss-120b',
   'meta-llama/llama-4-scout-17b-16e-instruct',
   'meta-llama/llama-4-maverick-17b-128e-instruct',
