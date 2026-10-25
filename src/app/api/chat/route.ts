@@ -50,6 +50,38 @@ function rateLimited(ip: string): boolean {
   return hits.length > RATE_LIMIT;
 }
 
+// --- Retry with exponential backoff on transient provider errors ---
+// Groq occasionally returns:
+//  - 429 rate limit ("try again in XmYs") when the generator cron is running
+//  - 404 "model does not exist" (transient hiccup at cold start)
+//  - 500 / network blips (serverless cold start)
+// We retry up to MAX_RETRIES times with exponential backoff so the user sees
+// a real reply instead of the scary "Connection hiccup" toast.
+const MAX_RETRIES = 2;
+const RETRY_BASE_MS = 800;
+
+function isTransientError(msg: string): boolean {
+  return /responded 429|rate.?limit|does not exist|model_not_found|ECONNRESET|ETIMEDOUT|ENOTFOUND|responded 5\d\d|network|fetch failed|aborted/i.test(msg);
+}
+
+async function withRetries<T>(fn: () => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const msg = (err as Error)?.message ?? '';
+      if (!isTransientError(msg) || attempt === MAX_RETRIES) {
+        throw err;
+      }
+      // Exponential backoff: 800ms, 1600ms
+      await new Promise((r) => setTimeout(r, RETRY_BASE_MS * Math.pow(2, attempt)));
+    }
+  }
+  throw lastErr;
+}
+
 function systemPrompt(locale: string): string {
   const lang = LANG_NAME[locale] ?? 'English';
   const native = LANG_NATIVE[locale] ?? 'English';
@@ -126,14 +158,16 @@ export async function POST(req: NextRequest) {
       // No credentials on this deployment (env vars or config file).
       return NextResponse.json({ error: 'not_configured' }, { status: 503 });
     }
-    const completion = await zai.chat.completions.create({
-      model: zaiChatModel(),
-      messages: [
-        { role: 'assistant', content: systemPrompt(locale) },
-        ...messages,
-      ],
-      thinking: { type: 'disabled' },
-    });
+    const completion = await withRetries(() =>
+      zai.chat.completions.create({
+        model: zaiChatModel(),
+        messages: [
+          { role: 'assistant', content: systemPrompt(locale) },
+          ...messages,
+        ],
+        thinking: { type: 'disabled' },
+      }),
+    );
 
     const reply = completion.choices[0]?.message?.content?.trim();
     if (!reply) {
