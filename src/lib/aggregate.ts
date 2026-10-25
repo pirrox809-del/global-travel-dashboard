@@ -13,7 +13,7 @@
  *     The frontend renders an "unavailable" badge per-card instead of erroring.
  *  3. LAZY LLM GENERATION: if the static content (overview/foods/pois) is
  *     missing for this country, we generate it via LLM ONCE and persist it.
- *     This is the trick that lets us cover "the vast majority of 189 states"
+ *     This is the trick that lets us cover "the vast majority of world states"
  *     without manual data entry — generation cost is paid exactly once.
  *  4. CACHING: dynamic data is cached inside each external client (weather
  *     20m, fx 6h, advisory 12h). Static content is "cached forever" in the DB.

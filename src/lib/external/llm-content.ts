@@ -2,10 +2,10 @@
  * llm-content.ts — LLM-powered generator for curated country content.
  *
  * ---------------------------------------------------------------------
- * THE KEY IDEA (covers "the vast majority of 189 states")
+ * THE KEY IDEA (covers "the vast majority of world states")
  * ---------------------------------------------------------------------
  * Truly free flight/hotel/safety APIs don't exist, and writing curated
- * content for 189 countries by hand is infeasible. So we use the LLM
+ * content for every country by hand is infeasible. So we use the LLM
  * (z-ai-web-dev-sdk — free in this environment) to generate, on first
  * request for a country, a SINGLE structured JSON blob containing:
  *

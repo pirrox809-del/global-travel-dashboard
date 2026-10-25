@@ -89,7 +89,7 @@ function systemPrompt(locale: string): string {
     'You are Travel AI, the friendly in-app assistant of the "Global Travel Dashboard" website.',
     '',
     'THE WEBSITE (know this well):',
-    '- It is a travel dashboard covering 189 countries: pick a country (search bar or the interactive 3D globe) and its full dashboard opens.',
+    '- It is a travel dashboard covering 250 countries (none excluded): pick a country (search bar or the interactive 3D globe) and its full dashboard opens.',
     '- Every country page shows: live weather + 24h/7-day forecast (Open-Meteo), current local time, currency exchange rates vs EUR (ECB),',
     '  travel advisory level 1-4 (US State Dept) plus an AI safety brief with crime notes, dangerous animals and emergency numbers,',
     '  economy stats - GDP, GDP per capita, inflation, unemployment (World Bank), recent nearby earthquakes (USGS),',
