@@ -38,6 +38,7 @@ export interface ZaiEnvConfig {
   baseUrl: string;
   apiKey: string;
   model?: string;
+  chatModel?: string;
   token?: string;
   chatId?: string;
   userId?: string;
@@ -78,6 +79,8 @@ function envConfig(): ZaiEnvConfig | null {
   const config: ZaiEnvConfig = { baseUrl, apiKey };
   const model = process.env.ZAI_MODEL?.trim();
   if (model) config.model = model;
+  const chatModel = process.env.ZAI_CHAT_MODEL?.trim();
+  if (chatModel) config.chatModel = chatModel;
   const token = process.env.ZAI_TOKEN?.trim();
   const chatId = process.env.ZAI_CHAT_ID?.trim();
   const userId = process.env.ZAI_USER_ID?.trim();
@@ -115,7 +118,10 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
   const url = `${config.baseUrl.replace(/\/+$/, '')}/chat/completions`;
   const modelsUrl = `${config.baseUrl.replace(/\/+$/, '')}/models`;
 
-  let resolvedModel: string | null = null;
+  // Working models are cached PER HINT so different callers (chatbot vs
+  // brief generator) keep separate lanes — and separate provider rate
+  // limits, which most providers enforce per model.
+  const resolvedByHint = new Map<string, string>();
   let providerModelIds: string[] | null = null;
 
   async function listProviderModels(): Promise<string[]> {
@@ -137,9 +143,12 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
     return providerModelIds;
   }
 
-  /** Next model name to try, skipping anything already attempted. */
-  async function nextModel(tried: Set<string>): Promise<string | null> {
-    if (resolvedModel && !tried.has(resolvedModel)) return resolvedModel;
+  /** Next model name to try for this hint, skipping anything attempted. */
+  async function nextModel(tried: Set<string>, hint?: string): Promise<string | null> {
+    const hintKey = hint ?? '__default__';
+    const cached = resolvedByHint.get(hintKey);
+    if (cached && !tried.has(cached)) return cached;
+    if (hint && !tried.has(hint)) return hint;
     const configured = config.model;
     if (configured && !tried.has(configured)) return configured;
 
@@ -175,7 +184,7 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < 4; attempt++) {
-      const model = await nextModel(tried);
+      const model = await nextModel(tried, args.model);
       if (!model) break;
       tried.add(model);
 
@@ -186,8 +195,8 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
       });
 
       if (res.ok) {
-        // Cache the working model for subsequent requests.
-        resolvedModel = model;
+        // Cache the working model for this lane's subsequent requests.
+        resolvedByHint.set(args.model ?? '__default__', model);
         return (await res.json()) as ChatCompletionResult;
       }
 
@@ -251,4 +260,15 @@ export async function getZai(): Promise<ZaiClient | null> {
  */
 export function zaiModel(): string | undefined {
   return process.env.ZAI_MODEL?.trim() || undefined;
+}
+
+/**
+ * Preferred model for the site chatbot (ZAI_CHAT_MODEL).
+ * Defaults to a fast, light model so the chat stays snappy AND rides its
+ * own rate-limit lane, separate from the heavy brief-generation calls
+ * (Groq enforces limits per model). If the provider rejects it, the
+ * client's auto-discovery takes over seamlessly.
+ */
+export function zaiChatModel(): string | undefined {
+  return process.env.ZAI_CHAT_MODEL?.trim() || 'llama-3.1-8b-instant';
 }

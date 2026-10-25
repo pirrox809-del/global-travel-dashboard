@@ -10,7 +10,7 @@
  * light: short context, no tools, no streaming, in-memory rate limiting.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getZai, zaiModel } from '@/lib/zai';
+import { getZai, zaiChatModel } from '@/lib/zai';
 
 // LLM replies can take well past the ~10s serverless default.
 export const maxDuration = 60;
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'not_configured' }, { status: 503 });
     }
     const completion = await zai.chat.completions.create({
-      model: zaiModel(),
+      model: zaiChatModel(),
       messages: [
         { role: 'assistant', content: systemPrompt(locale) },
         ...messages,
@@ -143,9 +143,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply });
   } catch (err) {
     console.error('[api/chat] failed:', err);
+    const message = (err as Error)?.message ?? '';
+    // Provider rate limits (e.g. Groq TPM while briefs are generating) get
+    // a 429 so the UI shows the friendly "busy, retry in a few seconds"
+    // message instead of the generic connection error.
+    if (/responded 429|rate.?limit/i.test(message)) {
+      return NextResponse.json({ error: 'provider_rate_limited' }, { status: 429 });
+    }
     // Short, secret-free provider message so failures are diagnosable
     // without access to server logs (API errors mask the key themselves).
-    const detail = (err as Error)?.message?.slice(0, 300) ?? 'unknown error';
+    const detail = message.slice(0, 300) || 'unknown error';
     return NextResponse.json({ error: 'unavailable', detail }, { status: 500 });
   }
 }

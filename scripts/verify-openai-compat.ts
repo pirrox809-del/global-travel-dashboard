@@ -43,3 +43,23 @@ if (!reply2.includes('model=openai/gpt-oss-120b')) {
   throw new Error(`cached model not reused, got: ${reply2}`);
 }
 console.log('model cache ✅ — subsequent calls reuse the working model directly');
+
+// Chat lane: a different hint must ride its own cached model.
+const chat1 = await zai.chat.completions.create({
+  model: 'llama-3.1-8b-instant',
+  messages: [{ role: 'user', content: 'chat ping' }],
+});
+const chatReply = chat1.choices[0]?.message?.content ?? '';
+console.log('chat reply:', chatReply);
+if (!chatReply.includes('model=llama-3.1-8b-instant')) {
+  throw new Error(`chat lane failed, got: ${chatReply}`);
+}
+// Brief lane keeps its own model after the chat call.
+const chat2 = await zai.chat.completions.create({
+  model: 'llama-3.1-8b-instant',
+  messages: [{ role: 'user', content: 'chat ping again' }],
+});
+if (!chat2.choices[0]?.message?.content?.includes('model=llama-3.1-8b-instant')) {
+  throw new Error('chat lane cache lost');
+}
+console.log('separate lanes ✅ — chat and briefs keep independent cached models');
