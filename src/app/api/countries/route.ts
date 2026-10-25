@@ -67,6 +67,8 @@ async function listCountries() {
       flagEmoji: true,
       flagUrl: true,
       independent: true,
+      latitude: true,
+      longitude: true,
     },
   });
 
@@ -85,6 +87,8 @@ async function listCountries() {
           flagEmoji: true,
           flagUrl: true,
           independent: true,
+          latitude: true,
+          longitude: true,
         },
       });
       console.log(`[countries] synced ${count} countries from REST Countries`);
@@ -103,6 +107,8 @@ async function listCountries() {
     capital: c.capital,
     flagEmoji: c.flagEmoji,
     flagUrl: c.flagUrl,
+    latitude: c.latitude,
+    longitude: c.longitude,
   }));
 
   return NextResponse.json({ countries: items, synced, count: items.length });

@@ -150,4 +150,7 @@ export type CountryListItem = {
   capital: string | null;
   flagEmoji: string | null;
   flagUrl: string | null;
+  /** Capital coordinates (for the globe quiz / map features). */
+  latitude: number | null;
+  longitude: number | null;
 };

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Globe2, Sparkles, Star } from 'lucide-react';
+import { Dices, Gamepad2, Globe2, Sparkles, Star, Swords, Trophy } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
@@ -15,6 +15,14 @@ import { TravelAIChat } from '@/components/travel-ai-chat';
 import { GlobeCdn } from '@/components/ui/cobe-globe-cdn';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { GlobeQuiz } from '@/components/playground/globe-quiz';
+import { CountryDuel } from '@/components/playground/country-duel';
 import { useT, useLanguage } from '@/components/language-provider';
 import { useFavorites } from '@/components/favorites-provider';
 import { useCountryList } from '@/hooks/use-country';
@@ -183,6 +191,23 @@ function DashboardAppInner() {
 
 function EmptyState({ onPick }: { onPick: (code: string) => void }) {
   const t = useT();
+  const { data: listData } = useCountryList();
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [duelOpen, setDuelOpen] = useState(false);
+  const [rolling, setRolling] = useState(false);
+
+  // 🎲 Surprise me — spin for ~0.65s, then teleport to a random country.
+  const surprise = () => {
+    const list = listData?.countries ?? [];
+    if (list.length === 0 || rolling) return;
+    setRolling(true);
+    setTimeout(() => {
+      const pick = list[Math.floor(Math.random() * list.length)];
+      onPick(pick.code);
+      setRolling(false);
+    }, 650);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -241,7 +266,92 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
       <p className="mt-8 text-xs text-muted-foreground/80">
         {t('empty.hint')}
       </p>
+
+      {/* Play & explore — surprise, quiz, duel */}
+      <PlaySection
+        onPick={onPick}
+        onSurprise={surprise}
+        rolling={rolling}
+        onQuiz={() => setQuizOpen(true)}
+        onDuel={() => setDuelOpen(true)}
+      />
+
+      {/* Globe quiz dialog */}
+      <Dialog open={quizOpen} onOpenChange={setQuizOpen}>
+        <DialogContent className="max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Trophy className="size-4 text-amber-500" />
+              {t('quiz.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <GlobeQuiz />
+        </DialogContent>
+      </Dialog>
+
+      {/* Country duel dialog */}
+      <Dialog open={duelOpen} onOpenChange={setDuelOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Swords className="size-4 text-amber-500" />
+              {t('duel.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <CountryDuel />
+        </DialogContent>
+      </Dialog>
     </motion.div>
+  );
+}
+
+/** Play & explore — three cards: surprise me / globe quiz / country duel. */
+function PlaySection({
+  onSurprise,
+  onQuiz,
+  onDuel,
+  rolling,
+}: {
+  onSurprise: () => void;
+  onQuiz: () => void;
+  onDuel: () => void;
+  rolling: boolean;
+}) {
+  const t = useT();
+  const cards = [
+    { key: 'surprise', icon: Dices, label: t('play.surprise'), hint: t('play.surpriseHint'), onClick: onSurprise, spinning: rolling },
+    { key: 'quiz', icon: Trophy, label: t('play.quiz'), hint: t('play.quizHint'), onClick: onQuiz, spinning: false },
+    { key: 'duel', icon: Swords, label: t('play.duel'), hint: t('play.duelHint'), onClick: onDuel, spinning: false },
+  ];
+  return (
+    <div className="mt-10 w-full max-w-xl">
+      <span className="mb-3 flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-500/80">
+        <Gamepad2 className="size-3.5" />
+        {t('play.title')}
+      </span>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {cards.map((card, i) => (
+          <motion.button
+            key={card.key}
+            type="button"
+            onClick={card.onClick}
+            disabled={card.spinning}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.35 + i * 0.07, ease: 'easeOut' }}
+            className="group flex flex-col items-center gap-1.5 rounded-2xl border border-border/50 bg-background/50 px-4 py-4 backdrop-blur-md transition-all hover:border-amber-500/40 hover:bg-amber-500/5 disabled:cursor-wait"
+          >
+            <card.icon
+              className={`size-6 text-amber-500 transition-transform group-hover:scale-110 ${
+                card.spinning ? 'animate-spin' : ''
+              }`}
+            />
+            <span className="text-sm font-bold">{card.label}</span>
+            <span className="text-center text-[11px] leading-snug text-muted-foreground">{card.hint}</span>
+          </motion.button>
+        ))}
+      </div>
+    </div>
   );
 }
 
