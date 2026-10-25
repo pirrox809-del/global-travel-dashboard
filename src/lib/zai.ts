@@ -37,6 +37,7 @@ export type ZaiClient = InstanceType<typeof ZAI>;
 export interface ZaiEnvConfig {
   baseUrl: string;
   apiKey: string;
+  model?: string;
   token?: string;
   chatId?: string;
   userId?: string;
@@ -75,6 +76,8 @@ function envConfig(): ZaiEnvConfig | null {
   if (!baseUrl || !apiKey) return null;
 
   const config: ZaiEnvConfig = { baseUrl, apiKey };
+  const model = process.env.ZAI_MODEL?.trim();
+  if (model) config.model = model;
   const token = process.env.ZAI_TOKEN?.trim();
   const chatId = process.env.ZAI_CHAT_ID?.trim();
   const userId = process.env.ZAI_USER_ID?.trim();
@@ -89,18 +92,72 @@ function envConfig(): ZaiEnvConfig | null {
  * Sends ONLY standard parameters — no gateway-specific extras — so strict
  * providers like Groq accept the request. Exposes the same
  * `chat.completions.create()` surface the rest of the app already uses.
+ *
+ * Model auto-discovery: providers rotate model names over time (Groq
+ * deprecated llama-3.3-70b-versatile, for example). When the configured
+ * model is rejected with a model_not_found error — or ZAI_MODEL is unset —
+ * the client queries the provider's GET /models endpoint and picks a
+ * usable chat model from its preference list, then caches the choice for
+ * the lifetime of the process.
  */
+const MODEL_PREFERENCE = [
+  'llama-3.3-70b-versatile',
+  'openai/gpt-oss-120b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'llama-3.1-8b-instant',
+];
+
+/** Endpoints/safety models that must never be picked as a chat fallback. */
+const MODEL_EXCLUDE = /embed|whisper|tts|guard|playai|prompt-guard|safety|rerank|compound/i;
+
 export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
   const url = `${config.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const modelsUrl = `${config.baseUrl.replace(/\/+$/, '')}/models`;
+
+  let resolvedModel: string | null = null;
+  let providerModelIds: string[] | null = null;
+
+  async function listProviderModels(): Promise<string[]> {
+    if (providerModelIds) return providerModelIds;
+    providerModelIds = [];
+    try {
+      const res = await fetch(modelsUrl, {
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { data?: { id?: string }[] };
+        providerModelIds = (data?.data ?? [])
+          .map((m) => m.id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0);
+      }
+    } catch {
+      // Provider without a /models endpoint — fall through.
+    }
+    return providerModelIds;
+  }
+
+  /** Next model name to try, skipping anything already attempted. */
+  async function nextModel(tried: Set<string>): Promise<string | null> {
+    if (resolvedModel && !tried.has(resolvedModel)) return resolvedModel;
+    const configured = config.model;
+    if (configured && !tried.has(configured)) return configured;
+
+    const ids = await listProviderModels();
+    for (const pref of MODEL_PREFERENCE) {
+      if (ids.includes(pref) && !tried.has(pref)) return pref;
+    }
+    const fallback = ids.find((id) => !MODEL_EXCLUDE.test(id) && !tried.has(id));
+    return fallback ?? null;
+  }
 
   async function create(args: ChatCompletionArgs): Promise<ChatCompletionResult> {
     // Whitelist standard OpenAI parameters; drop gateway-only extras.
-    const body: Record<string, unknown> = {
+    const baseBody: Record<string, unknown> = {
       messages: args.messages,
     };
-    if (args.model) body.model = args.model;
-    if (typeof args.temperature === 'number') body.temperature = args.temperature;
-    if (typeof args.max_tokens === 'number') body.max_tokens = args.max_tokens;
+    if (typeof args.temperature === 'number') baseBody.temperature = args.temperature;
+    if (typeof args.max_tokens === 'number') baseBody.max_tokens = args.max_tokens;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -110,18 +167,38 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
     if (config.chatId) headers['X-Chat-Id'] = config.chatId;
     if (config.userId) headers['X-User-Id'] = config.userId;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
+    const tried = new Set<string>();
+    let lastError: Error | null = null;
 
-    if (!res.ok) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const model = await nextModel(tried);
+      if (!model) break;
+      tried.add(model);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...baseBody, model }),
+      });
+
+      if (res.ok) {
+        // Cache the working model for subsequent requests.
+        resolvedModel = model;
+        return (await res.json()) as ChatCompletionResult;
+      }
+
       const errBody = (await res.text().catch(() => '')).slice(0, 500);
-      throw new Error(`LLM provider responded ${res.status}: ${errBody}`);
+      lastError = new Error(`LLM provider responded ${res.status}: ${errBody}`);
+
+      // Retry with another model only on "unknown model" style errors.
+      const modelProblem = res.status === 404 || (res.status === 400 && /model/i.test(errBody));
+      if (!modelProblem) throw lastError;
     }
 
-    return (await res.json()) as ChatCompletionResult;
+    throw (
+      lastError ??
+      new Error('No usable chat model found on the configured LLM provider')
+    );
   }
 
   return {
