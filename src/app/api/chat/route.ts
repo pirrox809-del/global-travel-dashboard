@@ -143,6 +143,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply });
   } catch (err) {
     console.error('[api/chat] failed:', err);
-    return NextResponse.json({ error: 'unavailable' }, { status: 500 });
+    // Short, secret-free provider message so failures are diagnosable
+    // without access to server logs (API errors mask the key themselves).
+    const detail = (err as Error)?.message?.slice(0, 300) ?? 'unknown error';
+    return NextResponse.json({ error: 'unavailable', detail }, { status: 500 });
   }
 }
