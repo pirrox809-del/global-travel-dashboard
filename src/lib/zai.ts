@@ -157,7 +157,11 @@ export function createOpenAiCompatClient(config: ZaiEnvConfig): ZaiClient {
       messages: args.messages,
     };
     if (typeof args.temperature === 'number') baseBody.temperature = args.temperature;
+    // Reasoning models (e.g. gpt-oss-*) spend part of the token budget
+    // "thinking"; without an explicit budget the visible answer can come
+    // back truncated. 8192 leaves room for both.
     if (typeof args.max_tokens === 'number') baseBody.max_tokens = args.max_tokens;
+    else baseBody.max_tokens = 8192;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

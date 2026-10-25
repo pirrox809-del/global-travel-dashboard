@@ -303,9 +303,15 @@ async function parsePayload(raw: string): Promise<LlmCountryPayload> {
   }
 }
 
-function validatePayload(p: LlmCountryPayload) {
-  if (!p.overview || !Array.isArray(p.culture) || !Array.isArray(p.foods)) {
-    throw new Error('LLM payload missing required fields');
+function validatePayload(p: LlmCountryPayload, rawPreview = '') {
+  const missing: string[] = [];
+  if (!p.overview) missing.push('overview');
+  if (!Array.isArray(p.culture)) missing.push('culture');
+  if (!Array.isArray(p.foods)) missing.push('foods');
+  if (missing.length > 0) {
+    throw new Error(
+      `LLM payload missing required fields: [${missing.join(', ')}] — response preview: ${rawPreview.slice(0, 200)}`,
+    );
   }
   // Ensure arrays exist (defensive).
   if (!Array.isArray(p.unwrittenRules)) p.unwrittenRules = [];
@@ -375,9 +381,15 @@ export async function generateCountryPayload(
           llmCallWithRetry(zai, country, languageName, 'extended'),
         ]);
 
-  // If both failed, throw. If one failed, use the other's data + defaults.
+  // If both failed, throw with the REAL reasons (not a generic message).
   if (coreResult.status === 'rejected' && extResult.status === 'rejected') {
-    throw new Error(`Both LLM calls failed for ${country.name}`);
+    throw new Error(
+      `Both LLM calls failed for ${country.name} — core: ${(coreResult.reason as Error).message} | ` +
+      `extended: ${(extResult.reason as Error).message}`,
+    );
+  }
+  if (coreResult.status === 'rejected') {
+    throw new Error(`Core LLM call failed for ${country.name}: ${(coreResult.reason as Error).message}`);
   }
 
   const core = coreResult.status === 'fulfilled' ? coreResult.value : {} as Partial<LlmCountryPayload>;
