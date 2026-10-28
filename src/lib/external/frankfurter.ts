@@ -57,14 +57,17 @@ export async function convertCurrency(
   const gbpRate = ecb.rates['GBP'] ?? 1;
 
   if (target === 'EUR') {
-    return { perEur: 1, perUsd: 1 / usdRate, perGbp: 1 / gbpRate, date: ecb.date };
+    // Display semantics: "1 EUR = …" — rows show how much EUR/USD/GBP
+    // one unit of the local currency is worth.
+    return { perEur: 1, perUsd: usdRate, perGbp: gbpRate, date: ecb.date };
   }
   const rate = ecb.rates[target];
   if (!rate) return null;
+  // rates are EUR-base (rates[X] = X per 1 EUR), so invert for "1 {local} = …".
   return {
-    perEur: rate,
-    perUsd: rate / usdRate,
-    perGbp: rate / gbpRate,
+    perEur: 1 / rate,
+    perUsd: usdRate / rate,
+    perGbp: gbpRate / rate,
     date: ecb.date,
   };
 }
