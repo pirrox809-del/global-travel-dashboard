@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🌐 Live demo
+    url: https://global-travel-dashboard.vercel.app
+    about: Try the dashboard before opening an issue.

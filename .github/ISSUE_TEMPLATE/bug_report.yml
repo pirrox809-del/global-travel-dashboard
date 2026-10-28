@@ -1,0 +1,59 @@
+name: 🐛 Bug report
+description: Something is broken or wrong — tell us and we'll fix it.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to report a bug! The more detail you give, the faster the fix.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - Country dashboard (weather / FX / advisory / economy)
+        - 3D globe or search
+        - AI brief or Travel AI chat
+        - Play & explore (surprise me / quiz / duel)
+        - Translations (EN / ES / IT / FR)
+        - Build / deploy / other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us what you expected to happen instead.
+      placeholder: I opened Japan and…
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Click …
+        3. See error
+    validations:
+      required: true
+  - type: input
+    id: country
+    attributes:
+      label: Country involved (if any)
+      placeholder: e.g. Japan
+  - type: dropdown
+    id: env
+    attributes:
+      label: Where did it happen?
+      options:
+        - Live site (vercel.app)
+        - Local dev
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshots / console output
+      placeholder: Paste images or console logs here

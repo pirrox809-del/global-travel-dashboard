@@ -1,0 +1,38 @@
+name: 💡 Feature idea
+description: Suggest an idea that would make the dashboard better.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Love new ideas — especially the weird ones. Describe yours below!
+  - type: textarea
+    id: the-idea
+    attributes:
+      label: Your idea
+      description: What would you like to see or do?
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+      placeholder: Today I can't…
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Roughly how big?
+      options:
+        - Tiny (copy tweak, small UI detail)
+        - Medium (a new card / section / language)
+        - Big (a new data source or mini-game)
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked existing issues and this idea isn't there yet
+          required: false
