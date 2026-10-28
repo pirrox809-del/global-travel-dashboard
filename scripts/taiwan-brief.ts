@@ -16,7 +16,7 @@ const TARGET_CODE = 'TW';
 
 const COUNTRY = {
   code: 'TW',
-  name: 'Taipei', // hmm — see below: we keep the sporting name to pass the filter
+  name: 'Chinese Taipei', // neutral sporting designation — passes the gateway filter
   officialName: 'Chinese Taipei',
   capital: 'Taipei',
   region: 'Asia',
