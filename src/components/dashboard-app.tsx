@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Dices, Gamepad2, Globe2, Sparkles, Star, Swords, Trophy } from 'lucide-react';
+import { BookUser, CalendarDays, Dices, Gamepad2, Globe2, Medal, Sparkles, Star, Swords, Trophy } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CountrySelector } from '@/components/country-selector';
 import { SunMoonThemeToggle } from '@/components/ui/sun-moon-theme-toggle';
@@ -23,6 +23,10 @@ import {
 } from '@/components/ui/dialog';
 import { GlobeQuiz } from '@/components/playground/globe-quiz';
 import { CountryDuel } from '@/components/playground/country-duel';
+import { DailyChallenge } from '@/components/playground/daily-challenge';
+import { WorldRecords } from '@/components/playground/world-records';
+import { Passport } from '@/components/playground/passport-card';
+import { recordVisit } from '@/lib/passport';
 import { useT, useLanguage } from '@/components/language-provider';
 import { useFavorites } from '@/components/favorites-provider';
 import { useCountryList } from '@/hooks/use-country';
@@ -97,6 +101,12 @@ function DashboardAppInner() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  // 🛂 Passport — stamp every visited country. localStorage only:
+  // no network, no API, survives across sessions in the same browser.
+  useEffect(() => {
+    if (selected) recordVisit(selected);
+  }, [selected]);
 
   return (
     <div className="relative flex min-h-screen flex-col">
@@ -194,7 +204,17 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
   const { data: listData } = useCountryList();
   const [quizOpen, setQuizOpen] = useState(false);
   const [duelOpen, setDuelOpen] = useState(false);
+  const [dailyOpen, setDailyOpen] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
+  const [passportOpen, setPassportOpen] = useState(false);
   const [rolling, setRolling] = useState(false);
+
+  // Teleport + close any open play dialog (records / passport tiles).
+  const visitFromDialog = (code: string) => {
+    setRecordsOpen(false);
+    setPassportOpen(false);
+    onPick(code);
+  };
 
   // 🎲 Surprise me — spin for ~0.65s, then teleport to a random country.
   const surprise = () => {
@@ -267,13 +287,16 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
         {t('empty.hint')}
       </p>
 
-      {/* Play & explore — surprise, quiz, duel */}
+      {/* Play & explore — surprise, quiz, duel, daily, records, passport */}
       <PlaySection
         onPick={onPick}
         onSurprise={surprise}
         rolling={rolling}
         onQuiz={() => setQuizOpen(true)}
         onDuel={() => setDuelOpen(true)}
+        onDaily={() => setDailyOpen(true)}
+        onRecords={() => setRecordsOpen(true)}
+        onPassport={() => setPassportOpen(true)}
       />
 
       {/* Globe quiz dialog */}
@@ -301,35 +324,83 @@ function EmptyState({ onPick }: { onPick: (code: string) => void }) {
           <CountryDuel />
         </DialogContent>
       </Dialog>
+
+      {/* Globe daily dialog */}
+      <Dialog open={dailyOpen} onOpenChange={setDailyOpen}>
+        <DialogContent className="max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <CalendarDays className="size-4 text-amber-500" />
+              {t('daily.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <DailyChallenge onVisit={onPick} />
+        </DialogContent>
+      </Dialog>
+
+      {/* World records dialog */}
+      <Dialog open={recordsOpen} onOpenChange={setRecordsOpen}>
+        <DialogContent className="max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Medal className="size-4 text-amber-500" />
+              {t('records.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <WorldRecords onVisit={visitFromDialog} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Passport dialog */}
+      <Dialog open={passportOpen} onOpenChange={setPassportOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <BookUser className="size-4 text-amber-500" />
+              {t('passport.title')}
+            </DialogTitle>
+          </DialogHeader>
+          <Passport onVisit={visitFromDialog} />
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
 
-/** Play & explore — three cards: surprise me / globe quiz / country duel. */
+/** Play & explore — six cards: surprise / quiz / duel / daily / records / passport. */
 function PlaySection({
   onSurprise,
   onQuiz,
   onDuel,
+  onDaily,
+  onRecords,
+  onPassport,
   rolling,
 }: {
   onSurprise: () => void;
   onQuiz: () => void;
   onDuel: () => void;
+  onDaily: () => void;
+  onRecords: () => void;
+  onPassport: () => void;
   rolling: boolean;
 }) {
   const t = useT();
   const cards = [
     { key: 'surprise', icon: Dices, label: t('play.surprise'), hint: t('play.surpriseHint'), onClick: onSurprise, spinning: rolling },
+    { key: 'daily', icon: CalendarDays, label: t('play.daily'), hint: t('play.dailyHint'), onClick: onDaily, spinning: false },
     { key: 'quiz', icon: Trophy, label: t('play.quiz'), hint: t('play.quizHint'), onClick: onQuiz, spinning: false },
     { key: 'duel', icon: Swords, label: t('play.duel'), hint: t('play.duelHint'), onClick: onDuel, spinning: false },
+    { key: 'records', icon: Medal, label: t('play.records'), hint: t('play.recordsHint'), onClick: onRecords, spinning: false },
+    { key: 'passport', icon: BookUser, label: t('play.passport'), hint: t('play.passportHint'), onClick: onPassport, spinning: false },
   ];
   return (
-    <div className="mt-10 w-full max-w-xl">
+    <div className="mt-10 w-full max-w-2xl">
       <span className="mb-3 flex items-center justify-center gap-1.5 text-xs font-medium uppercase tracking-wide text-amber-500/80">
         <Gamepad2 className="size-3.5" />
         {t('play.title')}
       </span>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {cards.map((card, i) => (
           <motion.button
             key={card.key}
